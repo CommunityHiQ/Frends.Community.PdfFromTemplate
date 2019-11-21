@@ -16,6 +16,13 @@ namespace Frends.Community.PdfFromTemplate
 {
     public class PdfTask
     {
+        /// <summary>
+        /// Creates PDF document from given content. See https://github.com/CommunityHiQ/Frends.Community.PdfFromTemplate
+        /// </summary>
+        /// <param name="outputFile"></param>
+        /// <param name="content"></param>
+        /// <param name="options"></param>
+        /// <returns>Object { bool Success, string FileName, byte[] ResultAsByteArray }</returns>
         public static Output CreatePdf([PropertyTab]FileProperties outputFile,
             [PropertyTab]DocumentContent content,
             [PropertyTab]Options options)
@@ -133,6 +140,13 @@ namespace Frends.Community.PdfFromTemplate
             }
         }
 
+        /// <summary>
+        /// Define page parameters.
+        /// </summary>
+        /// <param name="setup"></param>
+        /// <param name="pageWidth"></param>
+        /// <param name="pageHeight"></param>
+        /// <param name="docDefinition"></param>
         private static void SetupPage(PageSetup setup, Unit pageWidth, Unit pageHeight, DocumentDefinition docDefinition)
         {
             setup.Orientation = docDefinition.PageOrientation.ConvertEnum<Orientation>();
@@ -144,6 +158,11 @@ namespace Frends.Community.PdfFromTemplate
             setup.BottomMargin = new Unit(docDefinition.MarginBottomInCm, UnitType.Centimeter);
         }
 
+        /// <summary>
+        /// Define font parameters.
+        /// </summary>
+        /// <param name="style"></param>
+        /// <param name="settings"></param>
         private static void SetFont(Style style, StyleSettingsDefinition settings)
         {
             style.Font.Name = settings.FontFamily;
@@ -168,6 +187,12 @@ namespace Frends.Community.PdfFromTemplate
             }
         }
 
+        /// <summary>
+        /// Define text paragraph parameters.
+        /// </summary>
+        /// <param name="style"></param>
+        /// <param name="settings"></param>
+        /// <param name="isTable"></param>
         private static void SetParagraphStyle(Style style, StyleSettingsDefinition settings, bool isTable)
         {
             style.ParagraphFormat.LineSpacing = new Unit(settings.LineSpacingInPt, UnitType.Point);
@@ -180,6 +205,12 @@ namespace Frends.Community.PdfFromTemplate
             style.ParagraphFormat.SpaceAfter = new Unit(settings.SpacingAfterInPt, UnitType.Point);
         }
 
+        /// <summary>
+        /// Add text content. Reads one word at a time so that multiple whitespaces are added correctly.
+        /// </summary>
+        /// <param name="section"></param>
+        /// <param name="textContent"></param>
+        /// <param name="style"></param>
         private static void AddTextContent(Section section, string textContent, Style style)
         {
             // skip if text content if empty
@@ -209,6 +240,12 @@ namespace Frends.Community.PdfFromTemplate
             }
         }
 
+        /// <summary>
+        /// Describes how an image should be added to a page section.
+        /// </summary>
+        /// <param name="section"></param>
+        /// <param name="imageDef"></param>
+        /// <param name="pageWidth"></param>
         private static void AddImage(Section section, ImageDefinition imageDef, Unit pageWidth)
         {
             Unit originalImageWidthInches;
@@ -255,19 +292,14 @@ namespace Frends.Community.PdfFromTemplate
             }
         }
 
+        /// <summary>
+        /// Describes how an image should be added to a table cell.
+        /// </summary>
+        /// <param name="cell"></param>
+        /// <param name="imagePath"></param>
+        /// <param name="cellWidth"></param>
         private static void AddImage(Cell cell, string imagePath, double cellWidth)
         {
-            //Unit originalImageWidthInches;
-            //// work around to get image dimensions
-            //using (System.Drawing.Image userImage = System.Drawing.Image.FromFile(imagePath))
-            //{
-            //    // get image width in inches
-            //    var imageInches = userImage.Width / userImage.VerticalResolution;
-            //    originalImageWidthInches = new Unit(imageInches, UnitType.Inch);
-            //}
-
-            // add image
-
             if (string.IsNullOrWhiteSpace(imagePath) || !File.Exists(imagePath))
             {
                 throw new FileNotFoundException($"Path to header graphics was empty or the file does not exist.");
@@ -275,18 +307,19 @@ namespace Frends.Community.PdfFromTemplate
 
             Image image = cell.AddImage(imagePath);
 
-            // Calculate Image size: 
-            // if actual image size is larger than CellWidth, set image width as CellWidth
-            //if (originalImageWidthInches > cellWidth)
-            //{
-            //    image.Width = cellWidth;
-            //}
             image.Width = new Unit(cellWidth, UnitType.Centimeter);
             image.LockAspectRatio = true;
             image.Top = ShapePosition.Top;
             image.Left = ShapePosition.Left;
         }
 
+        /// <summary>
+        /// Adds a table to the page.
+        /// </summary>
+        /// <param name="section"></param>
+        /// <param name="tableDef"></param>
+        /// <param name="pageWidth"></param>
+        /// <param name="style"></param>
         private static void AddTable(Section section, TableDefinition tableDef, Unit pageWidth, Style style)
         {
             Table table;
@@ -357,6 +390,13 @@ namespace Frends.Community.PdfFromTemplate
             }
         }
 
+        /// <summary>
+        /// Helper method to process single rows of a table.
+        /// </summary>
+        /// <param name="table"></param>
+        /// <param name="columns"></param>
+        /// <param name="data"></param>
+        /// <param name="style"></param>
         private static void ProcessRow(Table table, List<ColumnDefinition> columns, List<string> data, Style style)
         {
             var row = table.AddRow();
@@ -386,6 +426,11 @@ namespace Frends.Community.PdfFromTemplate
             }
         }
 
+        /// <summary>
+        /// Helper method to parse domain from a username.
+        /// </summary>
+        /// <param name="username"></param>
+        /// <returns></returns>
         private static string[] GetDomainAndUserName(string username)
         {
             var domainAndUserName = username.Split('\\');

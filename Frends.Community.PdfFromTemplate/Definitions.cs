@@ -81,6 +81,10 @@ namespace Frends.Community.PdfFromTemplate
         [DefaultValue(true)]
         public bool ThrowErrorOnFailure { get; set; }
 
+        /// <summary>
+        /// True: Output object contains resulting document as a byte array.
+        /// False: Said array is set to null.
+        /// </summary>
         [DefaultValue(true)]
         public bool GetResultAsByteArray { get; set; }
     }
@@ -95,6 +99,7 @@ namespace Frends.Community.PdfFromTemplate
     }
 
 
+    // Following classes are for deserialization of JSON input.
     public enum AlignmentEnum { Left, Center, Justify, Right };
     public enum FontStyleEnum { Regular, Bold, Italic, BoldItalic, Underline };
     public enum TableTypeEnum { Table, Header, Footer };
@@ -199,6 +204,5 @@ namespace Frends.Community.PdfFromTemplate
         public double MarginRightInCm { get; set; }
         public double MarginBottomInCm { get; set; }
         public List<DocumentElement> DocumentElements { get; set; }
-        //public List<object> DocumentElements { get; set; }
     }
 }
