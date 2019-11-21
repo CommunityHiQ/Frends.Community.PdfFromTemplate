@@ -1,0 +1,239 @@
+{
+    "definitions": {
+        "Alignment": {
+            "type": "string",
+            "enum": [
+                "Left",
+                "Center",
+                "Justify",
+                "Right"
+            ]
+        },
+        "StyleSettings": {
+            "type": "object",
+            "required": [
+                "Alignment",
+                "SpacingBeforeInPt",
+                "SpacingAfterInPt",
+                "BorderWidthInPt",
+                "BorderStyle"
+            ],
+            "properties": {
+                "FontFamily": {
+                    "type": "string"
+                },
+                "FontSizeInPt": {
+                    "type": "number"
+                },
+                "FontStyle": {
+                    "type": "string",
+                    "enum": [
+                        "Regular",
+                        "Bold",
+                        "Italic",
+                        "BoldItalic",
+                        "Underline"
+                    ]
+                },
+                "LineSpacingInPt": {
+                    "type": "number"
+                },
+                "Alignment": {
+                    "$ref": "#/definitions/Alignment"
+                },
+                "SpacingBeforeInPt": {
+                    "type": "number"
+                },
+                "SpacingAfterInPt": {
+                    "type": "number"
+                },
+                "BorderWidthInPt": {
+                    "type": "number"
+                },
+                "BorderStyle": {
+                    "type": "string",
+                    "enum": [
+                        "None",
+                        "Top",
+                        "Bottom",
+                        "All"
+                    ]
+                }
+            }
+        },
+        "Table": {
+            "type": "object",
+            "required": [
+                "HasHeaderRow",
+                "TableType",
+                "StyleSettings",
+                "Columns",
+                "RowData"
+            ],
+            "properties": {
+                "HasHeaderRow": {
+                    "type": "boolean"
+                },
+                "TableType": {
+                    "type": "string",
+                    "enum": [
+                        "Table",
+                        "Header",
+                        "Footer"
+                    ]
+                },
+                "StyleSettings": {
+                    "$ref": "#/definitions/StyleSettings"
+                },
+                "Columns": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "Name",
+                            "WidthInCm",
+                            "Type"
+                        ],
+                        "properties": {
+                            "Name": {
+                                "type": "string"
+                            },
+                            "WidthInCm": {
+                                "type": "number"
+                            },
+                            "Type": {
+                                "type": "string",
+                                "enum": [
+                                    "Text",
+                                    "Image",
+                                    "PageNum"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "RowData": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "Paragraph": {
+            "type": "object",
+            "required": [
+                "Text",
+                "StyleSettings"
+            ],
+            "properties": {
+                "Text": {
+                    "type": "string"
+                },
+                "StyleSettings": {
+                    "$ref": "#/definitions/StyleSettings"
+                }
+            }
+        },
+        "Image": {
+            "type": "object",
+            "required": [
+                "ImagePath"
+            ],
+            "properties": {
+                "ImagePath": {
+                    "type": "string"
+                },
+                "Alignment": {
+                    "$ref": "#/definitions/Alignment"
+                },
+                "LockAspectRatio": {
+                    "type": "boolean"
+                },
+                "ImageWidthInCm": {
+                    "type": "number"
+                },
+                "ImageHeightInCm": {
+                    "type": "number"
+                }
+            }
+        },
+        "PageBreak": {
+            "type": "object",
+            "required": [
+                "InsertPageBreak"
+            ],
+            "properties": {
+                "InsertPageBreak": {
+                    "type": "boolean"
+                }
+            }
+        }
+    },
+    "type": "object",
+    "properties": {
+        "PageSize": {
+            "type": "string",
+            "enum": [
+                "A0",
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "A5",
+                "A6",
+                "B5",
+                "Ledger",
+                "Legal",
+                "Letter"
+            ]
+        },
+        "PageOrientation": {
+            "type": "string",
+            "enum": [
+                "Portrait",
+                "Landscape"
+            ]
+        },
+        "Title": {
+            "type": "string"
+        },
+        "Author": {
+            "type": "string"
+        },
+        "MarginLeftInCm": {
+            "type": "number"
+        },
+        "MarginTopInCm": {
+            "type": "number"
+        },
+        "MarginRightInCm": {
+            "type": "number"
+        },
+        "MarginBottomInCm": {
+            "type": "number"
+        },
+        "DocumentElements": {
+            "type": "array",
+            "items": {
+                "anyOf": [
+                    {
+                        "$ref": "#/definitions/Paragraph"
+                    },
+                    {
+                        "$ref": "#/definitions/Table"
+                    },
+                    {
+                        "$ref": "#/definitions/Image"
+                    },
+                    {
+                        "$ref": "#/definitions/PageBreak"
+                    }
+                ]
+            }
+        }
+    }
+}
