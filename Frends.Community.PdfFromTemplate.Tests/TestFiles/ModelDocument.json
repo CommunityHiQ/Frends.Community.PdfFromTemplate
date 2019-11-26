@@ -1,0 +1,114 @@
+{
+  "PageSize": "A4",
+  "PageOrientation": "Portrait",
+  "Title": "Dokumentti",
+  "Author": "FRENDS",
+  "MarginLeftInCm": 2.5,
+  "MarginTopInCm": 2.5,
+  "MarginRightInCm": 2.5,
+  "MarginBottomInCm": 2.5,
+  "DocumentElements": [
+    {
+      "HasHeaderRow": true,
+      "TableType": "Table",
+      "StyleSettings": {
+        "FontFamily": "Times New Roman",
+        "FontSizeInPt": 10,
+        "FontStyle": "Italic",
+        "LineSpacingInPt": 0,
+        "HorizontalAlignment": "Left",
+        "VerticalAlignment": "Bottom",
+        "SpacingBeforeInPt": 0,
+        "SpacingAfterInPt": 0,
+        "BorderWidthInPt": 0.5,
+        "BorderStyle": "All"
+      },
+      "Columns": [
+        {
+          "Name": "Sarake 1",
+          "WidthInCm": 4,
+          "Type": "Text"
+        },
+        {
+          "Name": "Sarake 2",
+          "WidthInCm": 5,
+          "Type": "Text"
+        },
+        {
+          "Name": "Sarake 3",
+          "WidthInCm": 6,
+          "Type": "Text"
+        }
+      ],
+      "RowData": [
+        {
+          "Sarake 1": "Solu 1",
+          "Sarake 2": "Solu 2",
+          "Sarake 3": "Solu 3"
+        },
+        {
+          "Sarake 1": "Solu 4",
+          "Sarake 2": "Solu 5",
+          "Sarake 3": "Solu 6"
+        }
+      ]
+    },
+    {
+      "HasHeaderRow": false,
+      "TableType": "Header",
+      "StyleSettings": {
+        "FontFamily": "Times New Roman",
+        "FontSizeInPt": 10,
+        "FontStyle": "Bold",
+        "LineSpacingInPt": 0,
+        "HorizontalAlignment": "Left",
+        "VerticalAlignment": "Bottom",
+        "SpacingBeforeInPt": 0,
+        "SpacingAfterInPt": 0,
+        "BorderWidthInPt": 0.5,
+        "BorderStyle": "Bottom"
+      },
+      "Columns": [
+        {
+          "Name": "Sarake 1",
+          "WidthInCm": 4,
+          "Type": "Text"
+        },
+        {
+          "Name": "Sarake 2",
+          "WidthInCm": 5,
+          "Type": "Text"
+        },
+        {
+          "Name": "Sarake 3",
+          "WidthInCm": 6,
+          "Type": "Text"
+        }
+      ],
+      "RowData": [
+        {
+          "Sarake 1": "Solu 1",
+          "Sarake 2": "Solu 2",
+          "Sarake 3": "Solu 3"
+        }
+      ]
+    },
+    {
+      "InsertPageBreak": true
+    },
+    {
+      "Text": "Tässä kerrotaan kappaleeseen tuleva teksti.\nRivinvaihdolla saa uusia rivejä.",
+      "StyleSettings": {
+        "FontFamily": "Times New Roman",
+        "FontSizeInPt": 10,
+        "FontStyle": "Regular",
+        "LineSpacingInPt": 14,
+        "HorizontalAlignment": "Left",
+        "SpacingBeforeInPt": 8,
+        "SpacingAfterInPt": 0,
+        "BorderWidthInPt": 0.5,
+        "BorderStyle": "All"
+      }
+    }
+  ]
+}
