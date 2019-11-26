@@ -16,7 +16,8 @@
         "FontSizeInPt": 10,
         "FontStyle": "Italic",
         "LineSpacingInPt": 0,
-        "Alignment": "Left",
+        "HorizontalAlignment": "Left",
+        "VerticalAlignment": "Bottom",
         "SpacingBeforeInPt": 0,
         "SpacingAfterInPt": 0,
         "BorderWidthInPt": 0.5,
@@ -60,11 +61,12 @@
         "FontSizeInPt": 10,
         "FontStyle": "Bold",
         "LineSpacingInPt": 0,
-        "Alignment": "Left",
+        "HorizontalAlignment": "Left",
+        "VerticalAlignment": "Bottom",
         "SpacingBeforeInPt": 0,
         "SpacingAfterInPt": 0,
         "BorderWidthInPt": 0.5,
-        "BorderStyle": "All"
+        "BorderStyle": "Bottom"
       },
       "Columns": [
         {
@@ -101,7 +103,7 @@
         "FontSizeInPt": 10,
         "FontStyle": "Regular",
         "LineSpacingInPt": 14,
-        "Alignment": "Left",
+        "HorizontalAlignment": "Left",
         "SpacingBeforeInPt": 8,
         "SpacingAfterInPt": 0,
         "BorderWidthInPt": 0.5,

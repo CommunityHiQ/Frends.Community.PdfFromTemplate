@@ -96,11 +96,14 @@ namespace Frends.Community.PdfFromTemplate
         public string FileName { get; set; }
 
         public byte[] ResultAsByteArray { get; set; }
+
+        public string ErrorMessage { get; set; }
     }
 
 
     // Following classes are for deserialization of JSON input.
-    public enum AlignmentEnum { Left, Center, Justify, Right };
+    public enum HorizontalAlignmentEnum { Left, Center, Justify, Right };
+    public enum VerticalAlignmentEnum { Top, Center, Bottom };
     public enum FontStyleEnum { Regular, Bold, Italic, BoldItalic, Underline };
     public enum TableTypeEnum { Table, Header, Footer };
     public enum ColumnTypeEnum { Text, Image, PageNum };
@@ -123,7 +126,8 @@ namespace Frends.Community.PdfFromTemplate
         public double FontSizeInPt { get; set; }
         public FontStyleEnum FontStyle { get; set; }
         public double LineSpacingInPt { get; set; }
-        public AlignmentEnum Alignment { get; set; }
+        public HorizontalAlignmentEnum HorizontalAlignment { get; set; }
+        public VerticalAlignmentEnum VerticalAlignment { get; set; }
         public double SpacingBeforeInPt { get; set; }
         public double SpacingAfterInPt { get; set; }
         public double BorderWidthInPt { get; set; }
@@ -177,7 +181,7 @@ namespace Frends.Community.PdfFromTemplate
             }
         }
         public string ImagePath { get; set; }
-        public AlignmentEnum Alignment { get; set; }
+        public HorizontalAlignmentEnum Alignment { get; set; }
         public bool LockAspectRatio { get; set; }
         public double ImageWidthInCm { get; set; }
         public double ImageHeightInCm { get; set; }

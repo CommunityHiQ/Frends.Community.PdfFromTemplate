@@ -43,8 +43,7 @@ namespace Frends.Community.PdfFromTemplate
                     document.Info.Author = docContent.Author;
                 }
 
-                Unit width, height;
-                PageSetup.GetPageSize(docContent.PageSize.ConvertEnum<PageFormat>(), out width, out height);
+                PageSetup.GetPageSize(docContent.PageSize.ConvertEnum<PageFormat>(), out Unit width, out Unit height);
 
                 var section = document.AddSection();
                 SetupPage(section.PageSetup, width, height, docContent);
@@ -106,16 +105,19 @@ namespace Frends.Community.PdfFromTemplate
 
 
                 pdfRenderer.RenderDocument();
-                
-                if (!options.UseGivenCredentials)
-                    pdfRenderer.PdfDocument.Save(fileName);
-                else
+
+                if (outputFile.SaveToDisk)
                 {
-                    var domainAndUserName = GetDomainAndUserName(options.UserName);
-                    using (Impersonation.LogonUser(domainAndUserName[0], domainAndUserName[1], options.Password, LogonType.NewCredentials))
-                    {
+                    if (!options.UseGivenCredentials)
                         pdfRenderer.PdfDocument.Save(fileName);
-                    }
+                    else
+                    {
+                        var domainAndUserName = GetDomainAndUserName(options.UserName);
+                        using (Impersonation.LogonUser(domainAndUserName[0], domainAndUserName[1], options.Password, LogonType.NewCredentials))
+                        {
+                            pdfRenderer.PdfDocument.Save(fileName);
+                        }
+                    } 
                 }
 
                 byte[] resultAsBytes = null;
@@ -134,9 +136,9 @@ namespace Frends.Community.PdfFromTemplate
             catch (Exception ex)
             {
                 if (options.ThrowErrorOnFailure)
-                    throw ex;
+                    throw;
 
-                return new Output { Success = false };
+                return new Output { Success = false, ErrorMessage = ex.Message };
             }
         }
 
@@ -200,7 +202,7 @@ namespace Frends.Community.PdfFromTemplate
             {
                 style.ParagraphFormat.LineSpacingRule = LineSpacingRule.Exactly; 
             }
-            style.ParagraphFormat.Alignment = settings.Alignment.ConvertEnum<MigraDoc.DocumentObjectModel.ParagraphAlignment>();
+            style.ParagraphFormat.Alignment = settings.HorizontalAlignment.ConvertEnum<MigraDoc.DocumentObjectModel.ParagraphAlignment>();
             style.ParagraphFormat.SpaceBefore = new Unit(settings.SpacingBeforeInPt, UnitType.Point);
             style.ParagraphFormat.SpaceAfter = new Unit(settings.SpacingAfterInPt, UnitType.Point);
         }
@@ -282,7 +284,7 @@ namespace Frends.Community.PdfFromTemplate
                 image.Height = new Unit(imageDef.ImageHeightInCm, UnitType.Centimeter);
             }
 
-            if (imageDef.Alignment == AlignmentEnum.Center || imageDef.Alignment == AlignmentEnum.Justify)
+            if (imageDef.Alignment == HorizontalAlignmentEnum.Center || imageDef.Alignment == HorizontalAlignmentEnum.Justify)
             {
                 image.Left = ShapePosition.Center;
             }
@@ -361,13 +363,18 @@ namespace Frends.Community.PdfFromTemplate
                 {
                     headerColumnDefinitions.Add(new ColumnDefinition { Type = ColumnTypeEnum.Text });
                 }
-                ProcessRow(table, headerColumnDefinitions, columnHeaders, style);
+                ProcessRow(table, headerColumnDefinitions, columnHeaders, style, tableDef.StyleSettings.VerticalAlignment);
             }
 
             foreach (var dataRow in tableDef.RowData)
             {
                 var data = dataRow.Select(row => row.Value).ToList();
-                ProcessRow(table, tableDef.Columns, data, style);
+                ProcessRow(table, tableDef.Columns, data, style, tableDef.StyleSettings.VerticalAlignment);
+            }
+
+            if (table.Rows.Count == 0)
+            {
+                return;
             }
 
             if (tableDef.StyleSettings.BorderWidthInPt > 0)
@@ -375,10 +382,10 @@ namespace Frends.Community.PdfFromTemplate
                 switch (tableDef.StyleSettings.BorderStyle)
                 {
                     case BorderStyleEnum.Top:
-                        table.Borders.Top.Width = new Unit(tableDef.StyleSettings.BorderWidthInPt, UnitType.Point);
+                        table.SetEdge(0, 0, table.Columns.Count, table.Rows.Count, Edge.Top, BorderStyle.Single, new Unit(tableDef.StyleSettings.BorderWidthInPt, UnitType.Point));
                         break;
                     case BorderStyleEnum.Bottom:
-                        table.Borders.Bottom.Width = new Unit(tableDef.StyleSettings.BorderWidthInPt, UnitType.Point);
+                        table.SetEdge(0, 0, table.Columns.Count, table.Rows.Count, Edge.Bottom, BorderStyle.Single, new Unit(tableDef.StyleSettings.BorderWidthInPt, UnitType.Point));
                         break;
                     case BorderStyleEnum.All:
                         table.Borders.Width = new Unit(tableDef.StyleSettings.BorderWidthInPt, UnitType.Point);
@@ -397,10 +404,18 @@ namespace Frends.Community.PdfFromTemplate
         /// <param name="columns"></param>
         /// <param name="data"></param>
         /// <param name="style"></param>
-        private static void ProcessRow(Table table, List<ColumnDefinition> columns, List<string> data, Style style)
+        private static void ProcessRow(Table table, List<ColumnDefinition> columns, List<string> data, Style style, VerticalAlignmentEnum verticalAlignment)
         {
             var row = table.AddRow();
-            row.VerticalAlignment = VerticalAlignment.Center;
+            if (verticalAlignment != VerticalAlignmentEnum.Center)
+            {
+                row.VerticalAlignment = verticalAlignment.ConvertEnum<VerticalAlignment>();
+            }
+            else
+            {
+                row.VerticalAlignment = VerticalAlignment.Center;
+            }
+
 
             for (int i = 0; i < data.Count; i++)
             {

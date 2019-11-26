@@ -26,7 +26,7 @@ namespace Frends.Community.PdfFromTemplate
                 Directory.CreateDirectory(_folder);
             }
 
-            _fileProperties = new FileProperties { Directory = _folder, FileName = _fileName, FileExistsAction = FileExistsActionEnum.Error, Unicode = true };
+            _fileProperties = new FileProperties { Directory = _folder, FileName = _fileName, FileExistsAction = FileExistsActionEnum.Error, Unicode = true, SaveToDisk = true };
             _options = new Options { UseGivenCredentials = false, ThrowErrorOnFailure = true, GetResultAsByteArray = true };
 
             var contentPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"TestFiles\ModelDocument.json");
