@@ -16,7 +16,7 @@ namespace Frends.Community.PdfFromTemplate
         /// </summary>
         [DefaultValue(true)]
         public bool SaveToDisk { get; set; }
-        
+
         /// <summary>
         /// PDF document destination Directory
         /// </summary>
@@ -121,7 +121,7 @@ namespace Frends.Community.PdfFromTemplate
 
     public class StyleSettingsDefinition
     {
-        
+
         public string FontFamily { get; set; }
         public double FontSizeInPt { get; set; }
         public FontStyleEnum FontStyle { get; set; }
@@ -139,7 +139,8 @@ namespace Frends.Community.PdfFromTemplate
     [JsonSubtypes.KnownSubTypeWithProperty(typeof(ParagraphDefinition), "Text")]
     [JsonSubtypes.KnownSubTypeWithProperty(typeof(ImageDefinition), "ImagePath")]
     [JsonSubtypes.KnownSubTypeWithProperty(typeof(PageBreakDefinition), "InsertPageBreak")]
-    public abstract class DocumentElement {
+    public abstract class DocumentElement
+    {
         public abstract ElementTypeEnum ElementType { get; }
     }
 
