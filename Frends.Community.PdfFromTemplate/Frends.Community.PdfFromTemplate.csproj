@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net471</TargetFramework>
-    <description>This is template task.</description>
+    <description>A task to create PDF files from a predefined JSON template.</description>
     <authors>HiQ Finland</authors>
     <copyright>HiQ Finland</copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -29,4 +29,3 @@
   </ItemGroup>
 
 </Project>
-
