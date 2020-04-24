@@ -14,6 +14,9 @@ using System.Text;
 
 namespace Frends.Community.PdfFromTemplate
 {
+    /// <summary>
+    /// Class library for creating PDF documents.
+    /// </summary>
     public class PdfTask
     {
         /// <summary>
@@ -51,6 +54,7 @@ namespace Frends.Community.PdfFromTemplate
                 // index for stylename
                 var elementNumber = 0;
                 // add page elements
+                
                 foreach (var pageElement in docContent.DocumentElements)
                 {
                     var styleName = $"style_{elementNumber}";
@@ -117,7 +121,7 @@ namespace Frends.Community.PdfFromTemplate
                         {
                             pdfRenderer.PdfDocument.Save(fileName);
                         }
-                    } 
+                    }
                 }
 
                 byte[] resultAsBytes = null;
@@ -200,7 +204,7 @@ namespace Frends.Community.PdfFromTemplate
             style.ParagraphFormat.LineSpacing = new Unit(settings.LineSpacingInPt, UnitType.Point);
             if (!isTable)
             {
-                style.ParagraphFormat.LineSpacingRule = LineSpacingRule.Exactly; 
+                style.ParagraphFormat.LineSpacingRule = LineSpacingRule.Exactly;
             }
             style.ParagraphFormat.Alignment = settings.HorizontalAlignment.ConvertEnum<MigraDoc.DocumentObjectModel.ParagraphAlignment>();
             style.ParagraphFormat.SpaceBefore = new Unit(settings.SpacingBeforeInPt, UnitType.Point);
@@ -231,7 +235,7 @@ namespace Frends.Community.PdfFromTemplate
                 while ((line = reader.ReadLine()) != null)
                 {
                     // read text one word at a time, so that multiple whitespaces are added correctly
-                    foreach (var word in line.Split(new char[] {' ', '\t' }))
+                    foreach (var word in line.Split(new char[] { ' ', '\t' }))
                     {
                         paragraph.AddText(word);
                         paragraph.AddSpace(1);
@@ -252,6 +256,7 @@ namespace Frends.Community.PdfFromTemplate
         {
             Unit originalImageWidthInches;
             // work around to get image dimensions
+            
             using (System.Drawing.Image userImage = System.Drawing.Image.FromFile(imageDef.ImagePath))
             {
                 // get image width in inches
@@ -404,6 +409,7 @@ namespace Frends.Community.PdfFromTemplate
         /// <param name="columns"></param>
         /// <param name="data"></param>
         /// <param name="style"></param>
+        /// <param name="verticalAlignment"></param>
         private static void ProcessRow(Table table, List<ColumnDefinition> columns, List<string> data, Style style, VerticalAlignmentEnum verticalAlignment)
         {
             var row = table.AddRow();
