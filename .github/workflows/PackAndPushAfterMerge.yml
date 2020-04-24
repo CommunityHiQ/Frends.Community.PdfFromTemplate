@@ -1,0 +1,21 @@
+name: PackAndPushAfterMerge
+
+on:
+  push:
+    branches:    
+      - master
+
+jobs:
+  build:
+    name: ReleaseTheTask
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Pack release version of task
+      run: dotnet pack --configuration Release --include-source 
+      
+    - name: Push NuGet package to the (prod) feed
+      run: dotnet nuget push Frends.Community.PdfFromTemplate\bin\Release\Frends.Community.PdfFromTemplate.*.nupkg  --api-key ${{ secrets.CommunityFeedApiKey }} --source https://www.myget.org/F/frends-community/api/v2/package --symbol-source https://www.myget.org/F/frends-community/symbols/api/v2/package
+
