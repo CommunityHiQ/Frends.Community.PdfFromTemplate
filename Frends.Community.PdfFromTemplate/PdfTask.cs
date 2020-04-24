@@ -14,6 +14,9 @@ using System.Text;
 
 namespace Frends.Community.PdfFromTemplate
 {
+    /// <summary>
+    /// Class library for creating PDF documents.
+    /// </summary>
     public class PdfTask
     {
         /// <summary>
@@ -406,6 +409,7 @@ namespace Frends.Community.PdfFromTemplate
         /// <param name="columns"></param>
         /// <param name="data"></param>
         /// <param name="style"></param>
+        /// <param name="verticalAlignment"></param>
         private static void ProcessRow(Table table, List<ColumnDefinition> columns, List<string> data, Style style, VerticalAlignmentEnum verticalAlignment)
         {
             var row = table.AddRow();
