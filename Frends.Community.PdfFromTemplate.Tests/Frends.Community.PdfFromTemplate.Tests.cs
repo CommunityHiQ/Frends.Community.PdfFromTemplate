@@ -18,26 +18,68 @@ namespace Frends.Community.PdfFromTemplate
         [SetUp]
         public void TestSetup()
         {
-            _folder = Path.Combine(Path.GetTempPath(), "pdfwriter_tests");
-            _destinationFullPath = Path.Combine(_folder, _fileName);
-
-            if (!Directory.Exists(_folder))
+            try
             {
+                _folder = Path.Combine(Path.GetTempPath(), "pdfwriter_tests");
+                _destinationFullPath = Path.Combine(_folder, _fileName);
+
+                // Ensure parent directory exists
+                var parentDir = Path.GetDirectoryName(_folder);
+                if (!Directory.Exists(parentDir))
+                {
+                    Directory.CreateDirectory(parentDir);
+                }
+
+                if (Directory.Exists(_folder))
+                {
+                    Directory.Delete(_folder, true);
+                }
                 Directory.CreateDirectory(_folder);
+
+                _fileProperties = new FileProperties { Directory = _folder, FileName = _fileName, FileExistsAction = FileExistsActionEnum.Error, Unicode = true, SaveToDisk = true };
+                _options = new Options { UseGivenCredentials = false, ThrowErrorOnFailure = true, GetResultAsByteArray = true };
+
+                var contentPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"TestFiles\ModelDocument.json");
+                var contentDefinition = File.ReadAllText(contentPath);
+                _content = new DocumentContent { ContentJson = contentDefinition };
             }
-
-            _fileProperties = new FileProperties { Directory = _folder, FileName = _fileName, FileExistsAction = FileExistsActionEnum.Error, Unicode = true, SaveToDisk = true };
-            _options = new Options { UseGivenCredentials = false, ThrowErrorOnFailure = true, GetResultAsByteArray = true };
-
-            var contentPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"TestFiles\ModelDocument.json");
-            var contentDefinition = File.ReadAllText(contentPath);
-            _content = new DocumentContent { ContentJson = contentDefinition };
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Test setup failed: {ex}");
+                throw;
+            }
         }
 
         [TearDown]
         public void TestTearDown()
         {
-            Directory.Delete(_folder, true);
+            try
+            {
+                if (Directory.Exists(_folder))
+                {
+                    // Force garbage collection before cleanup
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+
+                    // Delete all files first
+                    foreach (var file in Directory.GetFiles(_folder))
+                    {
+                        if (File.Exists(file))
+                        {
+                            File.SetAttributes(file, FileAttributes.Normal);
+                            File.Delete(file);
+                        }
+                    }
+
+                    // Then delete directory
+                    Directory.Delete(_folder, true);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Test teardown warning: {ex}");
+                // Don't throw from teardown
+            }
         }
 
         [Test]
@@ -73,7 +115,7 @@ namespace Frends.Community.PdfFromTemplate
 
             var contentJson = @"{ ""PageSize"": ""A4"", ""PageOrientation"": ""Portrait"", ""Title"": ""Dokumentti"", ""Author"": ""FRENDS"", ""MarginLeftInCm"": 2.5, ""MarginTopInCm"": 2.5, ""MarginRightInCm"": 2.5, ""MarginBottomInCm"": 2.5, ""DocumentElements"": [ { ""HasHeaderRow"": false, ""TableType"": ""Header"", ""StyleSettings"": { ""FontFamily"": ""Times New Roman"", ""FontSizeInPt"": 10, ""FontStyle"": ""Regular"", ""LineSpacingInPt"": 0, ""Alignment"": ""Left"", ""SpacingBeforeInPt"": 0, ""SpacingAfterInPt"": 0, ""BorderWidthInPt"": 0, ""BorderStyle"": ""None"" }, ""Columns"": [ { ""Name"": ""Sarake 1"", ""WidthInCm"": 2.5, ""Type"": ""Image"" }, { ""Name"": ""Sarake 2"", ""WidthInCm"": 7, ""Type"": ""Text"" }, { ""Name"": ""Sarake 3"", ""WidthInCm"": 2, ""Type"": ""PageNum"" } ], ""RowData"": [ { ""Sarake 1"": """
                 + logoPath
-                + @""", ""Sarake 2"": ""Tämä on keskimmäisen sarakkeen teksti"", ""Sarake 3"": """" } ] }]}";
+                + @""", ""Sarake 2"": ""Tï¿½mï¿½ on keskimmï¿½isen sarakkeen teksti"", ""Sarake 3"": """" } ] }]}";
 
             var content = new DocumentContent { ContentJson = contentJson };
 
@@ -127,7 +169,7 @@ namespace Frends.Community.PdfFromTemplate
         [Test]
         public void WritePdf_LogoNotFound()
         {
-            var contentJson = @"{ ""PageSize"": ""A4"", ""PageOrientation"": ""Portrait"", ""Title"": ""Dokumentti"", ""Author"": ""FRENDS"", ""MarginLeftInCm"": 2.5, ""MarginTopInCm"": 2.5, ""MarginRightInCm"": 2.5, ""MarginBottomInCm"": 2.5, ""DocumentElements"": [ { ""HasHeaderRow"": false, ""TableType"": ""Header"", ""StyleSettings"": { ""FontFamily"": ""Times New Roman"", ""FontSizeInPt"": 10, ""FontStyle"": ""Regular"", ""LineSpacingInPt"": 0, ""Alignment"": ""Left"", ""SpacingBeforeInPt"": 0, ""SpacingAfterInPt"": 0, ""BorderWidthInPt"": 0, ""BorderStyle"": ""None"" }, ""Columns"": [ { ""Name"": ""Sarake 1"", ""WidthInCm"": 2.5, ""Type"": ""Image"" }, { ""Name"": ""Sarake 2"", ""WidthInCm"": 7, ""Type"": ""Text"" }, { ""Name"": ""Sarake 3"", ""WidthInCm"": 2, ""Type"": ""PageNum"" } ], ""RowData"": [ { ""Sarake 1"": """", ""Sarake 2"": ""Tämä on keskimmäisen sarakkeen teksti"", ""Sarake 3"": """" } ] }]}";
+            var contentJson = @"{ ""PageSize"": ""A4"", ""PageOrientation"": ""Portrait"", ""Title"": ""Dokumentti"", ""Author"": ""FRENDS"", ""MarginLeftInCm"": 2.5, ""MarginTopInCm"": 2.5, ""MarginRightInCm"": 2.5, ""MarginBottomInCm"": 2.5, ""DocumentElements"": [ { ""HasHeaderRow"": false, ""TableType"": ""Header"", ""StyleSettings"": { ""FontFamily"": ""Times New Roman"", ""FontSizeInPt"": 10, ""FontStyle"": ""Regular"", ""LineSpacingInPt"": 0, ""Alignment"": ""Left"", ""SpacingBeforeInPt"": 0, ""SpacingAfterInPt"": 0, ""BorderWidthInPt"": 0, ""BorderStyle"": ""None"" }, ""Columns"": [ { ""Name"": ""Sarake 1"", ""WidthInCm"": 2.5, ""Type"": ""Image"" }, { ""Name"": ""Sarake 2"", ""WidthInCm"": 7, ""Type"": ""Text"" }, { ""Name"": ""Sarake 3"", ""WidthInCm"": 2, ""Type"": ""PageNum"" } ], ""RowData"": [ { ""Sarake 1"": """", ""Sarake 2"": ""Tï¿½mï¿½ on keskimmï¿½isen sarakkeen teksti"", ""Sarake 3"": """" } ] }]}";
 
             var content = new DocumentContent { ContentJson = contentJson };
 
@@ -138,7 +180,7 @@ namespace Frends.Community.PdfFromTemplate
         [Test]
         public void WritePdf_TableWidthTooLarge()
         {
-            var contentJson = @"{ ""PageSize"": ""A4"", ""PageOrientation"": ""Portrait"", ""Title"": ""Dokumentti"", ""Author"": ""FRENDS"", ""MarginLeftInCm"": 2.5, ""MarginTopInCm"": 2.5, ""MarginRightInCm"": 2.5, ""MarginBottomInCm"": 2.5, ""DocumentElements"": [ { ""HasHeaderRow"": false, ""TableType"": ""Header"", ""StyleSettings"": { ""FontFamily"": ""Times New Roman"", ""FontSizeInPt"": 10, ""FontStyle"": ""Regular"", ""LineSpacingInPt"": 0, ""Alignment"": ""Left"", ""SpacingBeforeInPt"": 0, ""SpacingAfterInPt"": 0, ""BorderWidthInPt"": 0, ""BorderStyle"": ""None"" }, ""Columns"": [ { ""Name"": ""Sarake 1"", ""WidthInCm"": 22, ""Type"": ""Text"" }, { ""Name"": ""Sarake 2"", ""WidthInCm"": 7, ""Type"": ""Text"" }, { ""Name"": ""Sarake 3"", ""WidthInCm"": 2, ""Type"": ""PageNum"" } ], ""RowData"": [ { ""Sarake 1"": ""Jotain tekstiä"", ""Sarake 2"": ""Tämä on keskimmäisen sarakkeen teksti"", ""Sarake 3"": """" } ] }]}";
+            var contentJson = @"{ ""PageSize"": ""A4"", ""PageOrientation"": ""Portrait"", ""Title"": ""Dokumentti"", ""Author"": ""FRENDS"", ""MarginLeftInCm"": 2.5, ""MarginTopInCm"": 2.5, ""MarginRightInCm"": 2.5, ""MarginBottomInCm"": 2.5, ""DocumentElements"": [ { ""HasHeaderRow"": false, ""TableType"": ""Header"", ""StyleSettings"": { ""FontFamily"": ""Times New Roman"", ""FontSizeInPt"": 10, ""FontStyle"": ""Regular"", ""LineSpacingInPt"": 0, ""Alignment"": ""Left"", ""SpacingBeforeInPt"": 0, ""SpacingAfterInPt"": 0, ""BorderWidthInPt"": 0, ""BorderStyle"": ""None"" }, ""Columns"": [ { ""Name"": ""Sarake 1"", ""WidthInCm"": 22, ""Type"": ""Text"" }, { ""Name"": ""Sarake 2"", ""WidthInCm"": 7, ""Type"": ""Text"" }, { ""Name"": ""Sarake 3"", ""WidthInCm"": 2, ""Type"": ""PageNum"" } ], ""RowData"": [ { ""Sarake 1"": ""Jotain tekstiï¿½"", ""Sarake 2"": ""Tï¿½mï¿½ on keskimmï¿½isen sarakkeen teksti"", ""Sarake 3"": """" } ] }]}";
 
             var content = new DocumentContent { ContentJson = contentJson };
 
