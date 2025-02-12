@@ -11,6 +11,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Security.Principal;
 
 namespace Frends.Community.PdfFromTemplate
 {
@@ -117,9 +118,13 @@ namespace Frends.Community.PdfFromTemplate
                     else
                     {
                         var domainAndUserName = GetDomainAndUserName(options.UserName);
-                        using (Impersonation.LogonUser(domainAndUserName[0], domainAndUserName[1], options.Password, LogonType.NewCredentials))
+                        var credentials = new UserCredentials(domainAndUserName[0], domainAndUserName[1], options.Password);
+                        using (var userContext = credentials.LogonUser(LogonType.NewCredentials))
                         {
-                            pdfRenderer.PdfDocument.Save(fileName);
+                            WindowsIdentity.RunImpersonated(userContext, () =>
+                            {
+                                pdfRenderer.PdfDocument.Save(fileName);
+                            });
                         }
                     }
                 }
