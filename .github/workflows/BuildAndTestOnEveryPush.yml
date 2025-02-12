@@ -25,6 +25,6 @@ jobs:
       run: dotnet pack --configuration Release --include-source
       
     - name: Push NuGet package to the testfeed
-       run: dotnet nuget push Frends.Community.PdfFromTemplate\bin\Release\Frends.Community.PdfFromTemplate.*.nupkg  --api-key ${{ secrets.CommunityFeedApiKey }} --source https://www.myget.org/F/frends-community-test/api/v2/package
+      run: dotnet nuget push Frends.Community.PdfFromTemplate\bin\Release\Frends.Community.PdfFromTemplate.*.nupkg  --api-key ${{ secrets.CommunityFeedApiKey }} --source https://www.myget.org/F/frends-community-test/api/v2/package
 
 
