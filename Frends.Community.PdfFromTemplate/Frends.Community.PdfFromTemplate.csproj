@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net6.0-windows7.0</TargetFrameworks>
+    <TargetFramework>net6</TargetFramework>
     <description>A task to create PDF files from a predefined JSON template.</description>
     <authors>HiQ Finland</authors>
     <copyright>HiQ Finland</copyright>
