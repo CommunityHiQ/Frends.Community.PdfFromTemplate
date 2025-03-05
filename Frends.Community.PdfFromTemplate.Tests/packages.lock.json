@@ -1,7 +1,7 @@
 {
   "version": 1,
   "dependencies": {
-    "net8.0": {
+    "net6.0-windows7.0": {
       "Microsoft.NET.Test.Sdk": {
         "type": "Direct",
         "requested": "[16.5.0, )",
@@ -572,7 +572,10 @@
       "System.Text.Encoding.CodePages": {
         "type": "Transitive",
         "resolved": "7.0.0",
-        "contentHash": "LSyCblMpvOe0N3E+8e0skHcrIhgV2huaNcjUUEa8hRtgEAm36aGkRoC8Jxlb6Ra6GSfF29ftduPNywin8XolzQ=="
+        "contentHash": "LSyCblMpvOe0N3E+8e0skHcrIhgV2huaNcjUUEa8hRtgEAm36aGkRoC8Jxlb6Ra6GSfF29ftduPNywin8XolzQ==",
+        "dependencies": {
+          "System.Runtime.CompilerServices.Unsafe": "6.0.0"
+        }
       },
       "System.Text.Encoding.Extensions": {
         "type": "Transitive",
