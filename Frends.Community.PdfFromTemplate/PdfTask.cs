@@ -102,45 +102,52 @@ namespace Frends.Community.PdfFromTemplate
                     fileNameIndex++;
                 }
                 // save document
-
                 var pdfRenderer = new PdfDocumentRenderer(outputFile.Unicode)
                 {
                     Document = document
                 };
 
-
                 pdfRenderer.RenderDocument();
 
+                // Save to memory first
+                byte[] resultAsBytes = null;
+                using (MemoryStream stream = new MemoryStream())
+                {
+                    pdfRenderer.Save(stream, false);
+                    resultAsBytes = stream.ToArray();
+                }
+
+                // Write to disk if requested
                 if (outputFile.SaveToDisk)
                 {
-                    if (!options.UseGivenCredentials)
-                        pdfRenderer.PdfDocument.Save(fileName);
-                    else
+                    try
                     {
-                        var domainAndUserName = GetDomainAndUserName(options.UserName);
-                        var credentials = new UserCredentials(domainAndUserName[0], domainAndUserName[1], options.Password);
-                        using (var userContext = credentials.LogonUser(LogonType.NewCredentials))
+                        if (!options.UseGivenCredentials)
                         {
-                            WindowsIdentity.RunImpersonated(userContext, () =>
+                            File.WriteAllBytes(fileName, resultAsBytes);
+                        }
+                        else
+                        {
+                            var domainAndUserName = GetDomainAndUserName(options.UserName);
+                            var credentials = new UserCredentials(domainAndUserName[0], domainAndUserName[1], options.Password);
+                            using (var userContext = credentials.LogonUser(LogonType.NewCredentials))
                             {
-                                pdfRenderer.PdfDocument.Save(fileName);
-                            });
+                                WindowsIdentity.RunImpersonated(userContext, () =>
+                                {
+                                    File.WriteAllBytes(fileName, resultAsBytes);
+                                });
+                            }
                         }
                     }
-                }
-
-                byte[] resultAsBytes = null;
-
-                if (options.GetResultAsByteArray)
-                {
-                    using (MemoryStream stream = new MemoryStream())
+                    catch (Exception ex)
                     {
-                        pdfRenderer.PdfDocument.Save(stream, false);
-                        resultAsBytes = stream.ToArray();
+                        if (options.ThrowErrorOnFailure)
+                            throw;
+                        return new Output { Success = false, ErrorMessage = $"Failed to write PDF to disk: {ex.Message}" };
                     }
                 }
 
-                return new Output { Success = true, FileName = fileName, ResultAsByteArray = resultAsBytes };
+                return new Output { Success = true, FileName = fileName, ResultAsByteArray = options.GetResultAsByteArray ? resultAsBytes : null };
             }
             catch (Exception ex)
             {

@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6</TargetFramework>
+    <TargetFramework>net6-windows7.0</TargetFramework>
     <description>A task to create PDF files from a predefined JSON template.</description>
     <authors>HiQ Finland</authors>
     <copyright>HiQ Finland</copyright>
@@ -10,7 +10,7 @@
     <IncludeSource>true</IncludeSource>
     <PackageTags>Frends</PackageTags>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <Version>1.1.2</Version>
+    <Version>1.1.10</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,7 +21,7 @@
 
   <ItemGroup>
     <PackageReference Include="JsonSubTypes" Version="1.6.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="PDFsharp-MigraDoc-GDI" Version="6.1.1" />
     <PackageReference Include="SimpleImpersonation" Version="4.2.0" />
     <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
