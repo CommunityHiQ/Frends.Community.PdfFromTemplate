@@ -1,477 +1,711 @@
-﻿using MigraDoc.DocumentObjectModel;
-using MigraDoc.DocumentObjectModel.Shapes;
-using MigraDoc.DocumentObjectModel.Tables;
-using MigraDoc.Rendering;
-using Newtonsoft.Json;
-using SimpleImpersonation;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Security.Principal;
+using System.Text;
+using Newtonsoft.Json;
+using iText.IO.Font;
+using iText.IO.Image;
+using iText.Kernel.Font;
+using iText.Kernel.Geom;
+using iText.Kernel.Pdf;
+using iText.Layout; // CORRECTED USING STATEMENT
+using iText.Layout.Borders;
+using iText.Layout.Element;
+using iText.Layout.Properties;
+using SimpleImpersonation;
+using SkiaSharp;
+using Path = System.IO.Path;
+using iText.IO.Font.Constants;
+using iText.Kernel.Events;
+using iText.Kernel.Pdf.Canvas;
+
 
 namespace Frends.Community.PdfFromTemplate
 {
-    /// <summary>
-    /// Class library for creating PDF documents.
-    /// </summary>
     public class PdfTask
     {
-        /// <summary>
-        /// Creates PDF document from given content. See https://github.com/CommunityHiQ/Frends.Community.PdfFromTemplate
-        /// </summary>
-        /// <param name="outputFile"></param>
-        /// <param name="content"></param>
-        /// <param name="options"></param>
-        /// <returns>Object { bool Success, string FileName, byte[] ResultAsByteArray }</returns>
-        public static Output CreatePdf([PropertyTab]FileProperties outputFile,
-            [PropertyTab]DocumentContent content,
-            [PropertyTab]Options options)
+        public static Output CreatePdf([PropertyTab] FileProperties outputFile, [PropertyTab] DocumentContent content, [PropertyTab] Options options)
         {
             try
             {
                 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-                DocumentDefinition docContent = JsonConvert.DeserializeObject<DocumentDefinition>(content.ContentJson);
-
-                var document = new Document();
-                if (!string.IsNullOrWhiteSpace(docContent.Title))
+                var docContent = JsonConvert.DeserializeObject<DocumentDefinition>(content.ContentJson);
+                if (docContent == null)
                 {
-                    document.Info.Title = docContent.Title;
-                }
-                if (!string.IsNullOrWhiteSpace(docContent.Author))
-                {
-                    document.Info.Author = docContent.Author;
+                    throw new ArgumentException("Content JSON could not be deserialized to DocumentDefinition.", nameof(content.ContentJson));
                 }
 
-                PageSetup.GetPageSize(docContent.PageSize.ConvertEnum<PageFormat>(), out Unit width, out Unit height);
+                using var memoryStream = new MemoryStream();
+                using var writer = new PdfWriter(memoryStream);
+                using var pdf = new PdfDocument(writer);
+                using var document = new Document(pdf);
 
-                var section = document.AddSection();
-                SetupPage(section.PageSetup, width, height, docContent);
+                // Set document margins
+                document.SetMargins(
+                    (float)UnitConverter.ConvertCmToPoint((float)docContent.MarginTopInCm),
+                    (float)UnitConverter.ConvertCmToPoint((float)docContent.MarginRightInCm),
+                    (float)UnitConverter.ConvertCmToPoint((float)docContent.MarginBottomInCm),
+                    (float)UnitConverter.ConvertCmToPoint((float)docContent.MarginLeftInCm)
+                );
 
-                // index for stylename
-                var elementNumber = 0;
-                // add page elements
-                
+                // Set document metadata
+                pdf.GetDocumentInfo().SetTitle(docContent.Title);
+                pdf.GetDocumentInfo().SetAuthor(docContent.Author);
+
+                SetupPage(pdf, docContent);
+
                 foreach (var pageElement in docContent.DocumentElements)
                 {
-                    var styleName = $"style_{elementNumber}";
-                    var style = document.Styles.AddStyle(styleName, "Normal");
-                    switch (pageElement.ElementType)
-                    {
-                        case ElementTypeEnum.Paragraph:
-                            SetFont(style, ((ParagraphDefinition)pageElement).StyleSettings);
-                            SetParagraphStyle(style, ((ParagraphDefinition)pageElement).StyleSettings, false);
-                            AddTextContent(section, ((ParagraphDefinition)pageElement).Text, style);
-                            break;
-                        case ElementTypeEnum.Image:
-                            AddImage(section, (ImageDefinition)pageElement, width);
-                            break;
-                        case ElementTypeEnum.Table:
-                            SetFont(style, ((TableDefinition)pageElement).StyleSettings);
-                            SetParagraphStyle(style, ((TableDefinition)pageElement).StyleSettings, true);
-                            AddTable(section, (TableDefinition)pageElement, width, style);
-                            break;
-                        case ElementTypeEnum.PageBreak:
-                            section = document.AddSection();
-                            SetupPage(section.PageSetup, width, height, docContent);
-                            break;
-                        default:
-                            break;
-                    }
-
-                    ++elementNumber;
-
+                    ProcessDocumentElement(document, pageElement, pdf, docContent);
                 }
 
-                string fileName = Path.Combine(outputFile.Directory, outputFile.FileName);
-                int fileNameIndex = 1;
-                while (File.Exists(fileName) && outputFile.FileExistsAction != FileExistsActionEnum.Overwrite)
-                {
-                    switch (outputFile.FileExistsAction)
-                    {
-                        case FileExistsActionEnum.Error:
-                            throw new Exception($"File {fileName} already exists.");
-                        case FileExistsActionEnum.Rename:
-                            fileName = Path.Combine(outputFile.Directory, $"{Path.GetFileNameWithoutExtension(outputFile.FileName)}_({fileNameIndex}){Path.GetExtension(outputFile.FileName)}");
-                            break;
-                    }
-                    fileNameIndex++;
-                }
-                // save document
-                var pdfRenderer = new PdfDocumentRenderer(outputFile.Unicode)
-                {
-                    Document = document
-                };
+                document.Close();
 
-                pdfRenderer.RenderDocument();
+                byte[] pdfBytes = memoryStream.ToArray();
+                string fullFilePath = Path.Combine(outputFile.Directory, outputFile.FileName);
+                fullFilePath = HandleFileExists(outputFile, fullFilePath);
 
-                // Save to memory first
-                byte[] resultAsBytes = null;
-                using (MemoryStream stream = new MemoryStream())
-                {
-                    pdfRenderer.Save(stream, false);
-                    resultAsBytes = stream.ToArray();
-                }
-
-                // Write to disk if requested
                 if (outputFile.SaveToDisk)
                 {
-                    try
-                    {
-                        if (!options.UseGivenCredentials)
-                        {
-                            File.WriteAllBytes(fileName, resultAsBytes);
-                        }
-                        else
-                        {
-                            var domainAndUserName = GetDomainAndUserName(options.UserName);
-                            var credentials = new UserCredentials(domainAndUserName[0], domainAndUserName[1], options.Password);
-                            using (var userContext = credentials.LogonUser(LogonType.NewCredentials))
-                            {
-                                WindowsIdentity.RunImpersonated(userContext, () =>
-                                {
-                                    File.WriteAllBytes(fileName, resultAsBytes);
-                                });
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        if (options.ThrowErrorOnFailure)
-                            throw;
-                        return new Output { Success = false, ErrorMessage = $"Failed to write PDF to disk: {ex.Message}" };
-                    }
+                    WritePdfToDisk(fullFilePath, pdfBytes, options);
                 }
 
-                return new Output { Success = true, FileName = fileName, ResultAsByteArray = options.GetResultAsByteArray ? resultAsBytes : null };
+                return new Output { Success = true, FileName = fullFilePath, ResultAsByteArray = options.GetResultAsByteArray ? pdfBytes : null };
             }
             catch (Exception ex)
             {
                 if (options.ThrowErrorOnFailure)
+                {
                     throw;
-
+                }
                 return new Output { Success = false, ErrorMessage = ex.Message };
             }
         }
 
-        /// <summary>
-        /// Define page parameters.
-        /// </summary>
-        /// <param name="setup"></param>
-        /// <param name="pageWidth"></param>
-        /// <param name="pageHeight"></param>
-        /// <param name="docDefinition"></param>
-        private static void SetupPage(PageSetup setup, Unit pageWidth, Unit pageHeight, DocumentDefinition docDefinition)
+        private static void ProcessDocumentElement(Document document, DocumentElement element, PdfDocument pdf, DocumentDefinition docDefinition)
         {
-            setup.Orientation = docDefinition.PageOrientation.ConvertEnum<Orientation>();
-            setup.PageHeight = pageHeight;
-            setup.PageWidth = pageWidth;
-            setup.LeftMargin = new Unit(docDefinition.MarginLeftInCm, UnitType.Centimeter);
-            setup.TopMargin = new Unit(docDefinition.MarginTopInCm, UnitType.Centimeter);
-            setup.RightMargin = new Unit(docDefinition.MarginRightInCm, UnitType.Centimeter);
-            setup.BottomMargin = new Unit(docDefinition.MarginBottomInCm, UnitType.Centimeter);
-        }
-
-        /// <summary>
-        /// Define font parameters.
-        /// </summary>
-        /// <param name="style"></param>
-        /// <param name="settings"></param>
-        private static void SetFont(Style style, StyleSettingsDefinition settings)
-        {
-            style.Font.Name = settings.FontFamily;
-            style.Font.Size = new Unit(settings.FontSizeInPt, UnitType.Point);
-            style.Font.Color = Colors.Black;
-
-            switch (settings.FontStyle)
+            switch (element.ElementType)
             {
-                case FontStyleEnum.Bold:
-                    style.Font.Bold = true;
+                case ElementTypeEnum.Paragraph:
+                    AddParagraph(document, (ParagraphDefinition)element);
                     break;
-                case FontStyleEnum.BoldItalic:
-                    style.Font.Bold = true;
-                    style.Font.Italic = true;
+                case ElementTypeEnum.Image:
+                    AddImage(document, (ImageDefinition)element);
                     break;
-                case FontStyleEnum.Italic:
-                    style.Font.Italic = true;
+                case ElementTypeEnum.Table:
+                    AddTable(document, (TableDefinition)element, pdf);
                     break;
-                case FontStyleEnum.Underline:
-                    style.Font.Underline = Underline.Single;
-                    break;
-            }
-        }
-
-        /// <summary>
-        /// Define text paragraph parameters.
-        /// </summary>
-        /// <param name="style"></param>
-        /// <param name="settings"></param>
-        /// <param name="isTable"></param>
-        private static void SetParagraphStyle(Style style, StyleSettingsDefinition settings, bool isTable)
-        {
-            style.ParagraphFormat.LineSpacing = new Unit(settings.LineSpacingInPt, UnitType.Point);
-            if (!isTable)
-            {
-                style.ParagraphFormat.LineSpacingRule = LineSpacingRule.Exactly;
-            }
-            style.ParagraphFormat.Alignment = settings.HorizontalAlignment.ConvertEnum<MigraDoc.DocumentObjectModel.ParagraphAlignment>();
-            style.ParagraphFormat.SpaceBefore = new Unit(settings.SpacingBeforeInPt, UnitType.Point);
-            style.ParagraphFormat.SpaceAfter = new Unit(settings.SpacingAfterInPt, UnitType.Point);
-        }
-
-        /// <summary>
-        /// Add text content. Reads one word at a time so that multiple whitespaces are added correctly.
-        /// </summary>
-        /// <param name="section"></param>
-        /// <param name="textContent"></param>
-        /// <param name="style"></param>
-        private static void AddTextContent(Section section, string textContent, Style style)
-        {
-            // skip if text content if empty
-            if (string.IsNullOrWhiteSpace(textContent))
-            {
-                return;
-            }
-
-            var paragraph = section.AddParagraph();
-            paragraph.Style = style.Name;
-
-            //read text line by line
-            string line;
-            using (var reader = new StringReader(textContent))
-            {
-                while ((line = reader.ReadLine()) != null)
-                {
-                    // read text one word at a time, so that multiple whitespaces are added correctly
-                    foreach (var word in line.Split(new char[] { ' ', '\t' }))
-                    {
-                        paragraph.AddText(word);
-                        paragraph.AddSpace(1);
-                    }
-                    // add newline
-                    paragraph.AddLineBreak();
-                }
-            }
-        }
-
-        /// <summary>
-        /// Describes how an image should be added to a page section.
-        /// </summary>
-        /// <param name="section"></param>
-        /// <param name="imageDef"></param>
-        /// <param name="pageWidth"></param>
-        private static void AddImage(Section section, ImageDefinition imageDef, Unit pageWidth)
-        {
-            Unit originalImageWidthInches;
-            // work around to get image dimensions
-            
-            using (System.Drawing.Image userImage = System.Drawing.Image.FromFile(imageDef.ImagePath))
-            {
-                // get image width in inches
-                var imageInches = userImage.Width / userImage.VerticalResolution;
-                originalImageWidthInches = new Unit(imageInches, UnitType.Inch);
-            }
-
-            // add image
-            Image image = section.AddImage(imageDef.ImagePath);
-
-            // Calculate Image size: 
-            // if actual image size is larger than PageWidth - margins, set image width as page width - margins
-            Unit actualPageContentWidth = new Unit((pageWidth.Inch - section.PageSetup.LeftMargin.Inch - section.PageSetup.RightMargin.Inch), UnitType.Inch);
-
-            if (imageDef.ImageWidthInCm > 0 && imageDef.ImageWidthInCm < actualPageContentWidth.Centimeter)
-            {
-                image.Width = new Unit(imageDef.ImageWidthInCm, UnitType.Centimeter);
-            }
-            else if (originalImageWidthInches > actualPageContentWidth)
-            {
-                image.Width = actualPageContentWidth;
-            }
-
-            if (imageDef.LockAspectRatio)
-            {
-                image.LockAspectRatio = imageDef.LockAspectRatio;
-            }
-            else if (imageDef.ImageHeightInCm > 0)
-            {
-                image.Height = new Unit(imageDef.ImageHeightInCm, UnitType.Centimeter);
-            }
-
-            if (imageDef.Alignment == HorizontalAlignmentEnum.Center || imageDef.Alignment == HorizontalAlignmentEnum.Justify)
-            {
-                image.Left = ShapePosition.Center;
-            }
-            else
-            {
-                image.Left = imageDef.Alignment.ConvertEnum<ShapePosition>();
-            }
-        }
-
-        /// <summary>
-        /// Describes how an image should be added to a table cell.
-        /// </summary>
-        /// <param name="cell"></param>
-        /// <param name="imagePath"></param>
-        /// <param name="cellWidth"></param>
-        private static void AddImage(Cell cell, string imagePath, double cellWidth)
-        {
-            if (string.IsNullOrWhiteSpace(imagePath) || !File.Exists(imagePath))
-            {
-                throw new FileNotFoundException($"Path to header graphics was empty or the file does not exist.");
-            }
-
-            Image image = cell.AddImage(imagePath);
-
-            image.Width = new Unit(cellWidth, UnitType.Centimeter);
-            image.LockAspectRatio = true;
-            image.Top = ShapePosition.Top;
-            image.Left = ShapePosition.Left;
-        }
-
-        /// <summary>
-        /// Adds a table to the page.
-        /// </summary>
-        /// <param name="section"></param>
-        /// <param name="tableDef"></param>
-        /// <param name="pageWidth"></param>
-        /// <param name="style"></param>
-        private static void AddTable(Section section, TableDefinition tableDef, Unit pageWidth, Style style)
-        {
-            Table table;
-
-            switch (tableDef.TableType)
-            {
-                case TableTypeEnum.Header:
-                    table = section.Headers.Primary.AddTable();
-                    break;
-                case TableTypeEnum.Footer:
-                    table = section.Footers.Primary.AddTable();
+                case ElementTypeEnum.PageBreak:
+                    document.Add(new AreaBreak(AreaBreakType.NEXT_PAGE));
+                    SetupPage(pdf, docDefinition);
                     break;
                 default:
-                    table = section.AddTable();
-                    break;
-            }
-
-            Unit tableWidth = new Unit(0, UnitType.Centimeter);
-            Unit actualPageContentWidth = new Unit((pageWidth.Centimeter - section.PageSetup.LeftMargin.Centimeter - section.PageSetup.RightMargin.Centimeter), UnitType.Centimeter);
-
-            foreach (var column in tableDef.Columns)
-            {
-                Unit columnWidth = new Unit(column.WidthInCm, UnitType.Centimeter);
-                tableWidth += columnWidth;
-                if (tableWidth > actualPageContentWidth)
-                {
-                    throw new Exception($"Page allows table to be {actualPageContentWidth.Centimeter} cm wide. Provided table's width is larger than that, {tableWidth.Centimeter} cm.");
-                }
-
-                table.AddColumn(columnWidth);
-            }
-
-
-            if (tableDef.HasHeaderRow)
-            {
-                var columnHeaders = tableDef.Columns.Select(column => column.Name).ToList();
-                var headerColumnDefinitions = new List<ColumnDefinition>();
-                for (int i = 0; i < columnHeaders.Count; i++)
-                {
-                    headerColumnDefinitions.Add(new ColumnDefinition { Type = ColumnTypeEnum.Text });
-                }
-                ProcessRow(table, headerColumnDefinitions, columnHeaders, style, tableDef.StyleSettings.VerticalAlignment);
-            }
-
-            foreach (var dataRow in tableDef.RowData)
-            {
-                var data = dataRow.Select(row => row.Value).ToList();
-                ProcessRow(table, tableDef.Columns, data, style, tableDef.StyleSettings.VerticalAlignment);
-            }
-
-            if (table.Rows.Count == 0)
-            {
-                return;
-            }
-
-            if (tableDef.StyleSettings.BorderWidthInPt > 0)
-            {
-                switch (tableDef.StyleSettings.BorderStyle)
-                {
-                    case BorderStyleEnum.Top:
-                        table.SetEdge(0, 0, table.Columns.Count, table.Rows.Count, Edge.Top, BorderStyle.Single, new Unit(tableDef.StyleSettings.BorderWidthInPt, UnitType.Point));
-                        break;
-                    case BorderStyleEnum.Bottom:
-                        table.SetEdge(0, 0, table.Columns.Count, table.Rows.Count, Edge.Bottom, BorderStyle.Single, new Unit(tableDef.StyleSettings.BorderWidthInPt, UnitType.Point));
-                        break;
-                    case BorderStyleEnum.All:
-                        table.Borders.Width = new Unit(tableDef.StyleSettings.BorderWidthInPt, UnitType.Point);
-                        break;
-                    case BorderStyleEnum.None:
-                    default:
-                        break;
-                }
+                    throw new ArgumentOutOfRangeException(nameof(element.ElementType), $"Unsupported element type: {element.ElementType}");
             }
         }
 
-        /// <summary>
-        /// Helper method to process single rows of a table.
-        /// </summary>
-        /// <param name="table"></param>
-        /// <param name="columns"></param>
-        /// <param name="data"></param>
-        /// <param name="style"></param>
-        /// <param name="verticalAlignment"></param>
-        private static void ProcessRow(Table table, List<ColumnDefinition> columns, List<string> data, Style style, VerticalAlignmentEnum verticalAlignment)
+        private static void SetupPage(PdfDocument pdf, DocumentDefinition docDefinition)
         {
-            var row = table.AddRow();
-            if (verticalAlignment != VerticalAlignmentEnum.Center)
+            PageSize pageSize = docDefinition.PageSize switch
             {
-                row.VerticalAlignment = verticalAlignment.ConvertEnum<VerticalAlignment>();
+                PageSizeEnum.A0 => PageSize.A0,
+                PageSizeEnum.A1 => PageSize.A1,
+                PageSizeEnum.A2 => PageSize.A2,
+                PageSizeEnum.A3 => PageSize.A3,
+                PageSizeEnum.A4 => PageSize.A4,
+                PageSizeEnum.A5 => PageSize.A5,
+                PageSizeEnum.A6 => PageSize.A6,
+                PageSizeEnum.B5 => PageSize.B5,
+                PageSizeEnum.Letter => PageSize.LETTER,
+                PageSizeEnum.Legal => PageSize.LEGAL,
+                PageSizeEnum.Ledger => PageSize.LEDGER,
+                _ => PageSize.A4,
+            };
+
+            if (docDefinition.PageOrientation == PageOrientationEnum.Landscape)
+            {
+                pageSize = pageSize.Rotate();
+            }
+
+            pdf.AddNewPage(pageSize);
+        }
+
+        private static void AddParagraph(Document document, ParagraphDefinition paragraphDef)
+        {
+            var paragraph = new Paragraph(paragraphDef.Text);
+            ApplyStyleSettings(paragraph, paragraphDef.StyleSettings);
+
+            if (paragraphDef.StyleSettings.BorderWidthInPt > 0)
+            {
+                var border = new SolidBorder((float)paragraphDef.StyleSettings.BorderWidthInPt);
+                switch (paragraphDef.StyleSettings.BorderStyle)
+                {
+                    case BorderStyleEnum.All:
+                        paragraph.SetBorder(border);
+                        break;
+                    case BorderStyleEnum.Top:
+                        paragraph.SetBorderTop(border);
+                        break;
+                    case BorderStyleEnum.Bottom:
+                        paragraph.SetBorderBottom(border);
+                        break;
+                    case BorderStyleEnum.None:
+                        paragraph.SetBorder(Border.NO_BORDER);
+                        break;
+                }
+            }
+
+            document.Add(paragraph);
+        }
+
+        private static void AddImage(Document document, ImageDefinition imageDef)
+        {
+            var imagePath = imageDef.ImagePath.Replace("\\\\", "\\");
+            if (!File.Exists(imagePath))
+            {
+                throw new FileNotFoundException($"Image file not found: {imagePath}", imagePath);
+            }
+
+            using var skBitmap = SKBitmap.Decode(imagePath);
+            using var skImage = SKImage.FromBitmap(skBitmap);
+            using var skData = skImage.Encode(SKEncodedImageFormat.Png, 100);
+            byte[] imageBytes = skData.ToArray();
+
+            var imageData = ImageDataFactory.Create(imageBytes);
+            var itextImage = new Image(imageData);
+
+            if (imageDef.ImageWidthInCm > 0)
+            {
+                itextImage.ScaleToFit((float)UnitConverter.ConvertCmToPoint((float)imageDef.ImageWidthInCm), float.MaxValue);
+
+                if (imageDef.ImageHeightInCm > 0 && !imageDef.LockAspectRatio)
+                {
+                    itextImage.ScaleAbsolute((float)UnitConverter.ConvertCmToPoint((float)imageDef.ImageWidthInCm),
+                                           (float)UnitConverter.ConvertCmToPoint((float)imageDef.ImageHeightInCm));
+                }
+            }
+
+            SetHorizontalAlignment(itextImage, imageDef.Alignment.ToString());
+            document.Add(itextImage);
+        }
+
+        private static void AddTable(Document document, TableDefinition tableDef, PdfDocument pdf)
+        {
+            float[] columnWidths = tableDef.Columns.Select(c => (float)c.WidthInCm).ToArray();
+            float totalWidth = columnWidths.Sum();
+            float pageWidth = pdf.GetDefaultPageSize().GetWidth() / UnitConverter.ConvertCmToPoint(1);
+            float availableWidth = pageWidth - document.GetLeftMargin() / UnitConverter.ConvertCmToPoint(1) - document.GetRightMargin() / UnitConverter.ConvertCmToPoint(1);
+
+            if (totalWidth > availableWidth)
+            {
+                throw new Exception($"Table width ({totalWidth:F1} cm) exceeds available page width ({availableWidth:F1} cm)");
+            }
+
+            // Create main table
+            var table = new Table(UnitValue.CreatePointArray(columnWidths.Select(w => UnitConverter.ConvertCmToPoint(w)).ToArray()));
+            table.SetWidth(UnitValue.CreatePercentValue(100));
+
+            // Add header row
+            if (tableDef.HasHeaderRow)
+            {
+                if (tableDef.HeaderData != null && tableDef.HeaderData.Any())
+                {
+                    // Use custom header data
+                    AddTableRow(table, tableDef.HeaderData[0].Select(kvp => new TableCellData { Text = kvp.Value }).ToList(), tableDef.Columns, tableDef.StyleSettings, tableDef.TableType == TableTypeEnum.Header);
+                }
+                else
+                {
+                    // Use column names
+                    foreach (var column in tableDef.Columns)
+                    {
+                        var cell = new Cell().Add(new Paragraph(column.Name));
+                        if (tableDef.TableType == TableTypeEnum.Header)
+                        {
+                            cell.SetBorder(Border.NO_BORDER);
+                        }
+                        else
+                        {
+                            // Add border for regular tables
+                            cell.SetBorder(new SolidBorder(0.5f));
+                        }
+                        ApplyStyleSettings(cell, tableDef.StyleSettings);
+                        table.AddHeaderCell(cell);
+                    }
+                }
+            }
+
+            // Add data rows
+            foreach (var dataRow in tableDef.RowData)
+            {
+                // Skip if this is a duplicate of the header row data (if using column names as header)
+                if (tableDef.HasHeaderRow && tableDef.HeaderData == null && dataRow.Values.SequenceEqual(tableDef.Columns.Select(c => c.Name)))
+                {
+                    continue;
+                }
+                AddTableRow(table, dataRow.Select(kvp => new TableCellData { Text = kvp.Value }).ToList(), tableDef.Columns, tableDef.StyleSettings, tableDef.TableType == TableTypeEnum.Header);
+            }
+
+            // Apply table borders based on table type
+            if (tableDef.TableType == TableTypeEnum.Header)
+            {
+                var headerHandler = new TableHeaderEventHandler(table);
+                pdf.AddEventHandler(PdfDocumentEvent.END_PAGE, headerHandler);
+            }
+            else if (tableDef.TableType == TableTypeEnum.Footer)
+            {
+                var footerHandler = new TableFooterEventHandler(table);
+                pdf.AddEventHandler(PdfDocumentEvent.END_PAGE, footerHandler);
             }
             else
             {
-                row.VerticalAlignment = VerticalAlignment.Center;
+                document.Add(table);
             }
+        }
 
-
-            for (int i = 0; i < data.Count; i++)
+        private static void AddTableRow(Table table, List<TableCellData> rowData, List<ColumnDefinition> columns, StyleSettingsDefinition styleSettings, bool isHeaderTable = false)
+        {
+            for (int i = 0; i < columns.Count; i++)
             {
-                switch (columns[i].Type)
+                var columnDef = columns[i];
+                var cellData = rowData[i];
+
+                Cell cell;
+                switch (columnDef.Type)
                 {
                     case ColumnTypeEnum.Text:
-                        var textField = row.Cells[i].AddParagraph();
-                        textField.Style = style.Name;
-                        textField.AddText(data[i]);
+                        cell = new Cell().Add(new Paragraph(cellData.Text ?? ""));
+                        if (isHeaderTable)
+                        {
+                            cell.SetBorder(Border.NO_BORDER);
+                        }
+                        else
+                        {
+                            cell.SetBorder(new SolidBorder(0.5f));
+                        }
+                        ApplyStyleSettings(cell, styleSettings);
                         break;
                     case ColumnTypeEnum.Image:
-                        AddImage(row.Cells[i], data[i], columns[i].WidthInCm);
+                        cell = CreateImageCell(cellData.ImagePath ?? cellData.Text, (float)columns[i].WidthInCm);
+                        if (isHeaderTable)
+                        {
+                            cell.SetBorder(Border.NO_BORDER);
+                        }
+                        else
+                        {
+                            cell.SetBorder(new SolidBorder(0.5f));
+                        }
                         break;
                     case ColumnTypeEnum.PageNum:
-                        var pagenumField = row.Cells[i].AddParagraph();
-                        pagenumField.Style = style.Name;
-                        pagenumField.AddPageField();
-                        pagenumField.AddText(" (");
-                        pagenumField.AddNumPagesField();
-                        pagenumField.AddText(")");
+                        cell = new Cell().Add(new Paragraph(new Text("")));
+                        if (isHeaderTable)
+                        {
+                            cell.SetBorder(Border.NO_BORDER);
+                        }
+                        else
+                        {
+                            cell.SetBorder(new SolidBorder(0.5f));
+                        }
+                        ApplyStyleSettings(cell, styleSettings);
+                        break;
+                    default:
+                        cell = new Cell().Add(new Paragraph(""));
+                        if (isHeaderTable)
+                        {
+                            cell.SetBorder(Border.NO_BORDER);
+                        }
+                        else
+                        {
+                            cell.SetBorder(new SolidBorder(0.5f));
+                        }
+                        break;
+                }
+                table.AddCell(cell);
+            }
+        }
+
+        private static Cell CreateImageCell(string imagePath, float columnWidthInCm)
+        {
+            if (string.IsNullOrEmpty(imagePath))
+            {
+                throw new FileNotFoundException("Image path cannot be empty");
+            }
+
+            var cell = new Cell();
+            imagePath = imagePath.Replace("\\\\", "\\");
+            if (!File.Exists(imagePath))
+            {
+                throw new FileNotFoundException($"Image file not found: {imagePath}", imagePath);
+            }
+
+            using var skBitmap = SKBitmap.Decode(imagePath);
+            using var skImage = SKImage.FromBitmap(skBitmap);
+            using var skData = skImage.Encode(SKEncodedImageFormat.Png, 100);
+            byte[] imageBytes = skData.ToArray();
+
+            var imageData = ImageDataFactory.Create(imageBytes);
+            var image = new Image(imageData);
+            image.ScaleToFit(UnitConverter.ConvertCmToPoint(columnWidthInCm), float.MaxValue);
+            cell.Add(image);
+            return cell;
+        }
+
+        private static void ApplyStyleSettings(IBlockElement element, StyleSettingsDefinition settings)
+        {
+            // Font
+            if (!string.IsNullOrEmpty(settings.FontFamily))
+            {
+                SetFont(element, settings.FontFamily);
+            }
+
+            if (element is Paragraph paragraph)
+            {
+                paragraph.SetFontSize((float)settings.FontSizeInPt)
+                        .SetTextAlignment(GetTextAlignment(settings.HorizontalAlignment))
+                        .SetFixedLeading((float)settings.LineSpacingInPt)
+                        .SetMarginTop((float)settings.SpacingBeforeInPt)
+                        .SetMarginBottom((float)settings.SpacingAfterInPt);
+
+                ApplyFontStyle(paragraph, settings.FontStyle);
+            }
+            else if (element is Cell cell)
+            {
+                cell.SetFontSize((float)settings.FontSizeInPt)
+                    .SetTextAlignment(GetTextAlignment(settings.HorizontalAlignment))
+                    .SetVerticalAlignment(GetVerticalAlignment(settings.VerticalAlignment));
+
+                ApplyFontStyle(cell, settings.FontStyle);
+            }
+        }
+
+        private static void SetFont(IBlockElement element, string fontFamily)
+        {
+            try
+            {
+                PdfFont pdfFont;
+                if (fontFamily.Equals("Times New Roman", StringComparison.OrdinalIgnoreCase))
+                {
+                    pdfFont = PdfFontFactory.CreateFont(StandardFonts.TIMES_ROMAN);
+                }
+                else if (fontFamily.Equals("Helvetica", StringComparison.OrdinalIgnoreCase))
+                {
+                    pdfFont = PdfFontFactory.CreateFont(StandardFonts.HELVETICA);
+                }
+                else
+                {
+                    var fontProgram = FontProgramFactory.CreateFont(fontFamily);
+                    pdfFont = PdfFontFactory.CreateFont(fontProgram, PdfEncodings.WINANSI, PdfFontFactory.EmbeddingStrategy.FORCE_EMBEDDED);
+                }
+
+                if (element is Paragraph paragraph)
+                {
+                    paragraph.SetFont(pdfFont);
+                }
+                else if (element is Cell cell)
+                {
+                    cell.SetFont(pdfFont);
+                }
+            }
+            catch
+            {
+                var pdfFont = PdfFontFactory.CreateFont(StandardFonts.HELVETICA);
+
+                if (element is Paragraph paragraph)
+                {
+                    paragraph.SetFont(pdfFont);
+                }
+                else if (element is Cell cell)
+                {
+                    cell.SetFont(pdfFont);
+                }
+            }
+        }
+
+        private static void ApplyFontStyle(IBlockElement element, FontStyleEnum fontStyle)
+        {
+            if (element is Paragraph paragraph)
+            {
+                switch (fontStyle)
+                {
+                    case FontStyleEnum.Bold:
+                        paragraph.SetBold();
+                        break;
+                    case FontStyleEnum.Italic:
+                        paragraph.SetItalic();
+                        break;
+                    case FontStyleEnum.BoldItalic:
+                        paragraph.SetBold().SetItalic();
+                        break;
+                    case FontStyleEnum.Underline:
+                        paragraph.SetUnderline();
+                        break;
+                }
+            }
+            else if (element is Cell cell)
+            {
+                switch (fontStyle)
+                {
+                    case FontStyleEnum.Bold:
+                        cell.SetBold();
+                        break;
+                    case FontStyleEnum.Italic:
+                        cell.SetItalic();
+                        break;
+                    case FontStyleEnum.BoldItalic:
+                        cell.SetBold().SetItalic();
+                        break;
+                    case FontStyleEnum.Underline:
+                        cell.SetUnderline();
                         break;
                 }
             }
         }
 
-        /// <summary>
-        /// Helper method to parse domain from a username.
-        /// </summary>
-        /// <param name="username"></param>
-        /// <returns></returns>
-        private static string[] GetDomainAndUserName(string username)
+        private static TextAlignment GetTextAlignment(HorizontalAlignmentEnum alignment)
         {
-            var domainAndUserName = username.Split('\\');
-            if (domainAndUserName.Length != 2)
+            return alignment switch
             {
-                throw new ArgumentException($@"UserName field must be of format domain\username was: {username}");
+                HorizontalAlignmentEnum.Left => TextAlignment.LEFT,
+                HorizontalAlignmentEnum.Center => TextAlignment.CENTER,
+                HorizontalAlignmentEnum.Right => TextAlignment.RIGHT,
+                HorizontalAlignmentEnum.Justify => TextAlignment.JUSTIFIED,
+                _ => TextAlignment.LEFT
+            };
+        }
+
+        private static VerticalAlignment GetVerticalAlignment(VerticalAlignmentEnum alignment)
+        {
+            return alignment switch
+            {
+                VerticalAlignmentEnum.Top => VerticalAlignment.TOP,
+                VerticalAlignmentEnum.Center => VerticalAlignment.MIDDLE,
+                VerticalAlignmentEnum.Bottom => VerticalAlignment.BOTTOM,
+                _ => VerticalAlignment.BOTTOM
+            };
+        }
+
+        private static void ApplyTableBorders(Table table, StyleSettingsDefinition settings)
+        {
+            if (settings.BorderWidthInPt > 0)
+            {
+                var border = new SolidBorder((float)settings.BorderWidthInPt);
+                switch (settings.BorderStyle)
+                {
+                    case BorderStyleEnum.All:
+                        table.SetBorder(border);
+                        break;
+                    case BorderStyleEnum.Top:
+                        table.SetBorderTop(border);
+                        break;
+                    case BorderStyleEnum.Bottom:
+                        table.SetBorderBottom(border);
+                        break;
+                    case BorderStyleEnum.None:
+                        table.SetBorder(Border.NO_BORDER);
+                        break;
+                }
             }
-            return domainAndUserName;
+            else
+            {
+                table.SetBorder(Border.NO_BORDER);
+            }
+        }
+
+        private static void SetHorizontalAlignment(IPropertyContainer element, string alignment)
+        {
+            element.SetProperty(Property.HORIZONTAL_ALIGNMENT, (HorizontalAlignment)ParseEnum<HorizontalAlignmentEnum>(alignment));
+        }
+
+        private static string HandleFileExists(FileProperties outputFile, string fullFilePath)
+        {
+            if (File.Exists(fullFilePath))
+            {
+                if (outputFile.FileExistsAction == FileExistsActionEnum.Error)
+                {
+                    throw new Exception($"File {fullFilePath} already exists.");
+                }
+                else if (outputFile.FileExistsAction == FileExistsActionEnum.Rename)
+                {
+                    var directory = Path.GetDirectoryName(fullFilePath);
+                    var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(fullFilePath);
+                    var extension = Path.GetExtension(fullFilePath);
+                    var counter = 1;
+
+                    while (File.Exists(fullFilePath))
+                    {
+                        fullFilePath = Path.Combine(directory, $"{fileNameWithoutExtension}_({counter}){extension}");
+                        counter++;
+                    }
+                }
+            }
+            return fullFilePath;
+        }
+
+        private static void WritePdfToDisk(string fullFilePath, byte[] pdfBytes, Options options)
+        {
+            if (!options.UseGivenCredentials)
+            {
+                File.WriteAllBytes(fullFilePath, pdfBytes);
+                return;
+            }
+
+            if (!OperatingSystem.IsWindows())
+            {
+                Console.WriteLine("Warning: Impersonation is only supported on Windows. Writing file as current user.");
+                File.WriteAllBytes(fullFilePath, pdfBytes);
+                return;
+            }
+
+            var domainAndUserName = GetDomainAndUserName(options.UserName);
+            var credentials = new UserCredentials(domainAndUserName[0], domainAndUserName[1], options.Password);
+            using (var userContext = credentials.LogonUser(LogonType.NewCredentials))
+            {
+                WindowsIdentity.RunImpersonated(userContext, () =>
+                {
+                    File.WriteAllBytes(fullFilePath, pdfBytes);
+                });
+            }
+        }
+
+        private static string[] GetDomainAndUserName(string userName)
+        {
+            var parts = userName.Split('\\');
+            if (parts.Length != 2)
+            {
+                throw new ArgumentException($"UserName field must be of format domain\\username was: {userName}");
+            }
+            return parts;
+        }
+
+        private static T ParseEnum<T>(string value) where T : struct, Enum
+        {
+            if (Enum.TryParse(value, true, out T result))
+            {
+                return result;
+            }
+            //Consider logging the enum name here
+            throw new ArgumentException($"Invalid value '{value}' for enum type '{typeof(T).Name}'.  Valid values are: {string.Join(", ", Enum.GetNames(typeof(T)))}");
+        }
+
+        public class TableCellData
+        {
+            public string Text { get; set; }
+            public string ImagePath { get; set; }
+            public StyleSettingsDefinition Style { get; set; }
+        }
+    }
+
+    // --- TableHeaderEventHandler ---
+    public class TableHeaderEventHandler : IEventHandler
+    {
+        private readonly Table _table;
+
+        public TableHeaderEventHandler(Table table)
+        {
+            _table = table;
+            // Remove all borders from the table
+            _table.SetBorder(Border.NO_BORDER);
+            // Remove all cell borders
+            foreach (var cell in _table.GetChildren())
+            {
+                if (cell is Cell tableCell)
+                {
+                    tableCell.SetBorder(Border.NO_BORDER);
+                }
+            }
+        }
+
+        public void HandleEvent(Event @event)
+        {
+            PdfDocumentEvent docEvent = (PdfDocumentEvent)@event;
+            PdfDocument pdfDoc = docEvent.GetDocument();
+            PdfPage page = docEvent.GetPage();
+            Rectangle pageSize = page.GetPageSize();
+            PdfCanvas pdfCanvas = new PdfCanvas(page.NewContentStreamBefore(), page.GetResources(), pdfDoc);
+
+            // Get document margins in points (assuming standard A4 margins of 2.5cm from ModelDocument.json)
+            float marginLeft = UnitConverter.ConvertCmToPoint(2.5f);
+            float marginTop = UnitConverter.ConvertCmToPoint(2.5f);
+            
+            // Calculate positions based on document margins
+            float x = marginLeft;
+            float y = pageSize.GetTop() - marginTop;
+            float width = pageSize.GetWidth() - (2 * marginLeft);
+
+            // Use SetFixedPosition for reliable positioning
+            _table.SetFixedPosition(x, y, width);
+
+            // Use a Canvas to add the table to the page
+            var canvas = new Canvas(pdfCanvas, pageSize);
+            canvas.Add(_table);
+            canvas.Close();
+            pdfCanvas.Release();
+        }
+    }
+
+    // --- TableFooterEventHandler ---
+    public class TableFooterEventHandler : IEventHandler
+    {
+        private readonly Table _table;
+
+        public TableFooterEventHandler(Table table)
+        {
+            _table = table;
+            // Remove all borders from the table
+            _table.SetBorder(Border.NO_BORDER);
+            // Remove all cell borders
+            foreach (var cell in _table.GetChildren())
+            {
+                if (cell is Cell tableCell)
+                {
+                    tableCell.SetBorder(Border.NO_BORDER);
+                }
+            }
+        }
+
+        public void HandleEvent(Event @event)
+        {
+            PdfDocumentEvent docEvent = (PdfDocumentEvent)@event;
+            PdfDocument pdfDoc = docEvent.GetDocument();
+            PdfPage page = docEvent.GetPage();
+            Rectangle pageSize = page.GetPageSize();
+            PdfCanvas pdfCanvas = new PdfCanvas(page.NewContentStreamBefore(), page.GetResources(), pdfDoc);
+
+            // Define margins and positions
+            float margin = 36;
+            float x = margin;
+            float y = margin; // Bottom of the page
+            float width = pageSize.GetWidth() - (2 * margin); // Page width minus left and right margins
+
+            // Draw page number (optional, but good practice for footers)
+            int pageNumber = pdfDoc.GetPageNumber(page);
+            pdfCanvas.BeginText()
+                .SetFontAndSize(PdfFontFactory.CreateFont(StandardFonts.HELVETICA), 10)
+                .MoveText(pageSize.GetWidth() / 2 - 20, y) // Center the page number
+                .ShowText($"Page {pageNumber}")
+                .EndText();
+
+            // Use SetFixedPosition for reliable positioning
+            _table.SetFixedPosition(x, y + 15, width); // Position the table *above* the page number
+
+            // Use a Canvas to add the table
+            var canvas = new Canvas(pdfCanvas, pageSize);
+            canvas.Add(_table);
+            canvas.Close();
+
+            pdfCanvas.Release();
+        }
+    }
+
+
+    public static class UnitConverter
+    {
+        public static float ConvertCmToPoint(float cm)
+        {
+            return cm * 28.3465f;
         }
     }
 }

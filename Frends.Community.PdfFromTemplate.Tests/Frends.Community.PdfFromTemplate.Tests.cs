@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using System;
 using System.IO;
+using System.Threading;
 
 namespace Frends.Community.PdfFromTemplate
 {
@@ -30,11 +31,47 @@ namespace Frends.Community.PdfFromTemplate
                     Directory.CreateDirectory(parentDir);
                 }
 
+                // Force garbage collection before cleanup
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                
+                // Temporarily rename output file instead of trying to delete it
                 if (Directory.Exists(_folder))
                 {
-                    Directory.Delete(_folder, true);
+                    foreach (var file in Directory.GetFiles(_folder))
+                    {
+                        try
+                        {
+                            // Just grab a unique name without deletion
+                            var uniqueName = Path.Combine(
+                                Path.GetDirectoryName(file),
+                                Path.GetFileNameWithoutExtension(file) + "_" + Guid.NewGuid().ToString().Substring(0, 8) + Path.GetExtension(file)
+                            );
+                            
+                            // Try to rename it if it's locked
+                            if (File.Exists(file))
+                            {
+                                try 
+                                {
+                                    File.Move(file, uniqueName);
+                                }
+                                catch
+                                {
+                                    // Ignore failed move operations
+                                    Console.WriteLine($"Could not rename locked file: {file}");
+                                }
+                            }
+                        }
+                        catch
+                        {
+                            // Ignore errors
+                        }
+                    }
                 }
-                Directory.CreateDirectory(_folder);
+                else
+                {
+                    Directory.CreateDirectory(_folder);
+                }
 
                 _fileProperties = new FileProperties { Directory = _folder, FileName = _fileName, FileExistsAction = FileExistsActionEnum.Error, Unicode = true, SaveToDisk = true };
                 _options = new Options { UseGivenCredentials = false, ThrowErrorOnFailure = true, GetResultAsByteArray = true };
@@ -73,6 +110,7 @@ namespace Frends.Community.PdfFromTemplate
 
                     // Then delete directory
                     Directory.Delete(_folder, true);
+                    
                 }
             }
             catch (Exception ex)
@@ -186,6 +224,84 @@ namespace Frends.Community.PdfFromTemplate
 
             var result = Assert.Throws<Exception>(() => PdfTask.CreatePdf(_fileProperties, content, _options));
             Assert.IsFalse(File.Exists(_destinationFullPath));
+        }
+
+        [Test]
+        public void WritePdf_SimpleLogoOnly()
+        {
+            try
+            {
+                // Set a specific name for this test's output file
+                string logoTestFileName = "simple_logo_test.pdf";
+                _fileProperties.FileName = logoTestFileName;
+                _destinationFullPath = Path.Combine(_folder, logoTestFileName);
+
+                var logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"TestFiles\logo.png").Replace("\\", "\\\\");
+                Console.WriteLine($"Logo path: {logoPath}");
+                Console.WriteLine($"Logo file exists: {File.Exists(logoPath.Replace("\\\\", "\\"))}");
+
+                // Create a simple document with just the logo image
+                var contentJson = @"{
+                    ""PageSize"": ""A4"",
+                    ""PageOrientation"": ""Portrait"",
+                    ""Title"": ""Simple Logo Test"",
+                    ""Author"": ""Frends Test"",
+                    ""MarginLeftInCm"": 2.5,
+                    ""MarginTopInCm"": 2.5,
+                    ""MarginRightInCm"": 2.5,
+                    ""MarginBottomInCm"": 2.5,
+                    ""DocumentElements"": [
+                        {
+                            ""Text"": ""This document contains a logo image below:"",
+                            ""StyleSettings"": {
+                                ""FontFamily"": ""Arial"",
+                                ""FontSizeInPt"": 14,
+                                ""FontStyle"": ""Bold"",
+                                ""LineSpacingInPt"": 16,
+                                ""HorizontalAlignment"": ""Center"",
+                                ""VerticalAlignment"": ""Center"",
+                                ""SpacingBeforeInPt"": 10,
+                                ""SpacingAfterInPt"": 20,
+                                ""BorderWidthInPt"": 0,
+                                ""BorderStyle"": ""None""
+                            }
+                        },
+                        {
+                            ""ImagePath"": """ + logoPath + @""",
+                            ""Alignment"": ""Center"",
+                            ""LockAspectRatio"": true,
+                            ""ImageWidthInCm"": 10,
+                            ""ImageHeightInCm"": 0
+                        }
+                    ]
+                }";
+
+                var content = new DocumentContent { ContentJson = contentJson };
+                
+                Console.WriteLine("Creating PDF with simple logo...");
+                var result = PdfTask.CreatePdf(_fileProperties, content, _options);
+                
+                Console.WriteLine($"PDF with simple logo generated at: {_destinationFullPath}");
+                Console.WriteLine($"File exists: {File.Exists(_destinationFullPath)}");
+                
+                Assert.IsTrue(File.Exists(_destinationFullPath));
+                Assert.IsTrue(result.Success);
+                
+                // Pause to allow manual inspection
+                Console.WriteLine("Pausing for 10 seconds to allow manual file inspection");
+                Thread.Sleep(10000);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in WritePdf_SimpleLogoOnly: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"Inner exception: {ex.InnerException.Message}");
+                    Console.WriteLine($"Inner stack trace: {ex.InnerException.StackTrace}");
+                }
+                throw;
+            }
         }
     }
 }
