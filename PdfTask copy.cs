@@ -25,18 +25,8 @@ using iText.Kernel.Pdf.Canvas;
 
 namespace Frends.Community.PdfFromTemplate
 {
-    /// <summary>
-    /// Class library for creating PDF documents using iText.
-    /// </summary>
     public class PdfTask
     {
-        /// <summary>
-        /// Creates PDF document from given content. See https://github.com/CommunityHiQ/Frends.Community.PdfFromTemplate
-        /// </summary>
-        /// <param name="outputFile">Properties for the output file</param>
-        /// <param name="content">JSON content for the document</param>
-        /// <param name="options">Options for PDF generation</param>
-        /// <returns>Object { bool Success, string FileName, byte[] ResultAsByteArray, string ErrorMessage }</returns>
         public static Output CreatePdf([PropertyTab] FileProperties outputFile, [PropertyTab] DocumentContent content, [PropertyTab] Options options)
         {
             try
@@ -139,13 +129,6 @@ namespace Frends.Community.PdfFromTemplate
             }
         }
 
-        /// <summary>
-        /// Process a single document element based on its type
-        /// </summary>
-        /// <param name="document">The document to add the element to</param>
-        /// <param name="element">The element to process</param>
-        /// <param name="pdf">The PDF document</param>
-        /// <param name="docDefinition">The document definition</param>
         private static void ProcessDocumentElement(Document document, DocumentElement element, PdfDocument pdf, DocumentDefinition docDefinition)
         {
             switch (element.ElementType)
@@ -170,11 +153,6 @@ namespace Frends.Community.PdfFromTemplate
             }
         }
 
-        /// <summary>
-        /// Setup the page with appropriate size and orientation
-        /// </summary>
-        /// <param name="pdf">The PDF document</param>
-        /// <param name="docDefinition">The document definition</param>
         private static void SetupPage(PdfDocument pdf, DocumentDefinition docDefinition)
         {
             PageSize pageSize = docDefinition.PageSize switch
@@ -201,11 +179,6 @@ namespace Frends.Community.PdfFromTemplate
             pdf.AddNewPage(pageSize);
         }
 
-        /// <summary>
-        /// Add a paragraph element to the document
-        /// </summary>
-        /// <param name="document">The document to add the paragraph to</param>
-        /// <param name="paragraphDef">The paragraph definition</param>
         private static void AddParagraph(Document document, ParagraphDefinition paragraphDef)
         {
             try
@@ -282,11 +255,6 @@ namespace Frends.Community.PdfFromTemplate
             }
         }
 
-        /// <summary>
-        /// Add an image element to the document
-        /// </summary>
-        /// <param name="document">The document to add the image to</param>
-        /// <param name="imageDef">The image definition</param>
         private static void AddImage(Document document, ImageDefinition imageDef)
         {
             var imagePath = imageDef.ImagePath.Replace("\\\\", "\\");
@@ -318,12 +286,6 @@ namespace Frends.Community.PdfFromTemplate
             document.Add(itextImage);
         }
 
-        /// <summary>
-        /// Add a table element to the document
-        /// </summary>
-        /// <param name="document">The document to add the table to</param>
-        /// <param name="tableDef">The table definition</param>
-        /// <param name="pdf">The PDF document</param>
         private static void AddTable(Document document, TableDefinition tableDef, PdfDocument pdf)
         {
             float[] columnWidths = tableDef.Columns.Select(c => (float)c.WidthInCm).ToArray();
@@ -421,14 +383,6 @@ namespace Frends.Community.PdfFromTemplate
             }
         }
 
-        /// <summary>
-        /// Add a row to a table
-        /// </summary>
-        /// <param name="table">The table to add the row to</param>
-        /// <param name="rowData">The row data</param>
-        /// <param name="columns">The column definitions</param>
-        /// <param name="styleSettings">The style settings</param>
-        /// <param name="isHeaderTable">Whether this is a header table</param>
         private static void AddTableRow(Table table, List<TableCellData> rowData, List<ColumnDefinition> columns, StyleSettingsDefinition styleSettings, bool isHeaderTable = false)
         {
             for (int i = 0; i < columns.Count; i++)
@@ -526,12 +480,6 @@ namespace Frends.Community.PdfFromTemplate
             }
         }
 
-        /// <summary>
-        /// Create a cell containing an image
-        /// </summary>
-        /// <param name="imagePath">Path to the image</param>
-        /// <param name="columnWidthInCm">Width of the column in centimeters</param>
-        /// <returns>A cell containing the image</returns>
         private static Cell CreateImageCell(string imagePath, float columnWidthInCm)
         {
             if (string.IsNullOrEmpty(imagePath))
@@ -558,11 +506,6 @@ namespace Frends.Community.PdfFromTemplate
             return cell;
         }
 
-        /// <summary>
-        /// Apply style settings to a block element
-        /// </summary>
-        /// <param name="element">The element to style</param>
-        /// <param name="settings">The style settings</param>
         private static void ApplyStyleSettings(IBlockElement element, StyleSettingsDefinition settings)
         {
             // Font
@@ -591,11 +534,6 @@ namespace Frends.Community.PdfFromTemplate
             }
         }
 
-        /// <summary>
-        /// Set the font for an element
-        /// </summary>
-        /// <param name="element">The element to set the font for</param>
-        /// <param name="fontFamily">The font family name</param>
         private static void SetFont(IBlockElement element, string fontFamily)
         {
             try
@@ -639,11 +577,6 @@ namespace Frends.Community.PdfFromTemplate
             }
         }
 
-        /// <summary>
-        /// Apply font style to an element
-        /// </summary>
-        /// <param name="element">The element to apply the style to</param>
-        /// <param name="fontStyle">The font style to apply</param>
         private static void ApplyFontStyle(IBlockElement element, FontStyleEnum fontStyle)
         {
             if (element is Paragraph paragraph)
@@ -684,11 +617,6 @@ namespace Frends.Community.PdfFromTemplate
             }
         }
 
-        /// <summary>
-        /// Get the iText text alignment from horizontal alignment enum
-        /// </summary>
-        /// <param name="alignment">The horizontal alignment</param>
-        /// <returns>The iText text alignment</returns>
         private static TextAlignment GetTextAlignment(HorizontalAlignmentEnum alignment)
         {
             return alignment switch
@@ -701,11 +629,6 @@ namespace Frends.Community.PdfFromTemplate
             };
         }
 
-        /// <summary>
-        /// Get the iText vertical alignment from vertical alignment enum
-        /// </summary>
-        /// <param name="alignment">The vertical alignment</param>
-        /// <returns>The iText vertical alignment</returns>
         private static VerticalAlignment GetVerticalAlignment(VerticalAlignmentEnum alignment)
         {
             return alignment switch
@@ -717,11 +640,6 @@ namespace Frends.Community.PdfFromTemplate
             };
         }
 
-        /// <summary>
-        /// Apply borders to a table
-        /// </summary>
-        /// <param name="table">The table to apply borders to</param>
-        /// <param name="settings">The style settings</param>
         private static void ApplyTableBorders(Table table, StyleSettingsDefinition settings)
         {
             if (settings.BorderWidthInPt > 0)
@@ -749,22 +667,11 @@ namespace Frends.Community.PdfFromTemplate
             }
         }
 
-        /// <summary>
-        /// Set the horizontal alignment of an element
-        /// </summary>
-        /// <param name="element">The element to align</param>
-        /// <param name="alignment">The alignment to set</param>
         private static void SetHorizontalAlignment(IPropertyContainer element, string alignment)
         {
             element.SetProperty(Property.HORIZONTAL_ALIGNMENT, (HorizontalAlignment)ParseEnum<HorizontalAlignmentEnum>(alignment));
         }
 
-        /// <summary>
-        /// Handle the case when the output file already exists
-        /// </summary>
-        /// <param name="outputFile">The output file properties</param>
-        /// <param name="fullFilePath">The full file path</param>
-        /// <returns>The updated file path</returns>
         private static string HandleFileExists(FileProperties outputFile, string fullFilePath)
         {
             if (File.Exists(fullFilePath))
@@ -790,12 +697,6 @@ namespace Frends.Community.PdfFromTemplate
             return fullFilePath;
         }
 
-        /// <summary>
-        /// Write the PDF to disk with optional impersonation
-        /// </summary>
-        /// <param name="fullFilePath">The full file path</param>
-        /// <param name="pdfBytes">The PDF bytes</param>
-        /// <param name="options">The options</param>
         private static void WritePdfToDisk(string fullFilePath, byte[] pdfBytes, Options options)
         {
             if (!options.UseGivenCredentials)
@@ -813,20 +714,15 @@ namespace Frends.Community.PdfFromTemplate
 
             var domainAndUserName = GetDomainAndUserName(options.UserName);
             var credentials = new UserCredentials(domainAndUserName[0], domainAndUserName[1], options.Password);
-            using (var userHandle = credentials.LogonUser(LogonType.NewCredentials))
+            using (var userContext = credentials.LogonUser(LogonType.NewCredentials))
             {
-                WindowsIdentity.RunImpersonated(userHandle, () =>
+                WindowsIdentity.RunImpersonated(userContext, () =>
                 {
                     File.WriteAllBytes(fullFilePath, pdfBytes);
                 });
             }
         }
 
-        /// <summary>
-        /// Get the domain and username from a string
-        /// </summary>
-        /// <param name="userName">The username in domain\username format</param>
-        /// <returns>Array with domain and username</returns>
         private static string[] GetDomainAndUserName(string userName)
         {
             var parts = userName.Split('\\');
@@ -837,12 +733,6 @@ namespace Frends.Community.PdfFromTemplate
             return parts;
         }
 
-        /// <summary>
-        /// Parse an enum value from a string
-        /// </summary>
-        /// <typeparam name="T">The enum type</typeparam>
-        /// <param name="value">The string value</param>
-        /// <returns>The parsed enum value</returns>
         private static T ParseEnum<T>(string value) where T : struct, Enum
         {
             if (Enum.TryParse(value, true, out T result))
@@ -853,31 +743,15 @@ namespace Frends.Community.PdfFromTemplate
             throw new ArgumentException($"Invalid value '{value}' for enum type '{typeof(T).Name}'.  Valid values are: {string.Join(", ", Enum.GetNames(typeof(T)))}");
         }
 
-        /// <summary>
-        /// Data class for table cell content
-        /// </summary>
         public class TableCellData
         {
-            /// <summary>
-            /// The text content of the cell
-            /// </summary>
             public string Text { get; set; }
-            
-            /// <summary>
-            /// The path to an image for the cell
-            /// </summary>
             public string ImagePath { get; set; }
-            
-            /// <summary>
-            /// Style settings for the cell
-            /// </summary>
             public StyleSettingsDefinition Style { get; set; }
         }
     }
 
-    /// <summary>
-    /// Handles the header table on each page
-    /// </summary>
+    // --- TableHeaderEventHandler ---
     public class TableHeaderEventHandler : IEventHandler
     {
         private readonly Table _table;
@@ -1003,9 +877,7 @@ namespace Frends.Community.PdfFromTemplate
         }
     }
 
-    /// <summary>
-    /// Handles the footer table on each page
-    /// </summary>
+    // --- TableFooterEventHandler ---
     public class TableFooterEventHandler : IEventHandler
     {
         private readonly Table _table;
@@ -1136,16 +1008,9 @@ namespace Frends.Community.PdfFromTemplate
         }
     }
 
-    /// <summary>
-    /// Utility class for unit conversions
-    /// </summary>
+
     public static class UnitConverter
     {
-        /// <summary>
-        /// Convert centimeters to points
-        /// </summary>
-        /// <param name="cm">Value in centimeters</param>
-        /// <returns>Value in points</returns>
         public static float ConvertCmToPoint(float cm)
         {
             return cm * 28.3465f;

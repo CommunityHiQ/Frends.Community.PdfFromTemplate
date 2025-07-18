@@ -98,19 +98,7 @@ namespace Frends.Community.PdfFromTemplate
                     GC.Collect();
                     GC.WaitForPendingFinalizers();
 
-                    // Delete all files first
-                    foreach (var file in Directory.GetFiles(_folder))
-                    {
-                        if (File.Exists(file))
-                        {
-                            File.SetAttributes(file, FileAttributes.Normal);
-                            File.Delete(file);
-                        }
-                    }
-
-                    // Then delete directory
-                    Directory.Delete(_folder, true);
-                    
+                   
                 }
             }
             catch (Exception ex)
@@ -272,6 +260,693 @@ namespace Frends.Community.PdfFromTemplate
                             ""LockAspectRatio"": true,
                             ""ImageWidthInCm"": 10,
                             ""ImageHeightInCm"": 0
+                        }
+                    ]
+                }";
+
+                var content = new DocumentContent { ContentJson = contentJson };
+                
+                Console.WriteLine("Creating PDF with simple logo...");
+                var result = PdfTask.CreatePdf(_fileProperties, content, _options);
+                
+                Console.WriteLine($"PDF with simple logo generated at: {_destinationFullPath}");
+                Console.WriteLine($"File exists: {File.Exists(_destinationFullPath)}");
+                
+                Assert.IsTrue(File.Exists(_destinationFullPath));
+                Assert.IsTrue(result.Success);
+                
+                // Pause to allow manual inspection
+                Console.WriteLine("Pausing for 10 seconds to allow manual file inspection");
+                Thread.Sleep(10000);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in WritePdf_SimpleLogoOnly: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"Inner exception: {ex.InnerException.Message}");
+                    Console.WriteLine($"Inner stack trace: {ex.InnerException.StackTrace}");
+                }
+                throw;
+            }
+        }
+
+
+
+        [Test]
+        public void RealContent()
+        {
+            try
+            {
+                // Set a specific name for this test's output file
+                string logoTestFileName = "RealContent.pdf";
+                _fileProperties.FileName = logoTestFileName;
+                _destinationFullPath = Path.Combine(_folder, logoTestFileName);
+
+                var logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"TestFiles\logo.png").Replace("\\", "\\\\");
+                Console.WriteLine($"Logo path: {logoPath}");
+                Console.WriteLine($"Logo file exists: {File.Exists(logoPath.Replace("\\\\", "\\"))}");
+
+                // Create a simple document with just the logo image
+                var contentJson = @"{
+                    ""PageSize"": ""A4"",
+                    ""PageOrientation"": ""Portrait"",
+                    ""Title"": ""Testi"",
+                    ""MarginLeftInCm"": 2.5,
+                    ""MarginTopInCm"": 2.5,
+                    ""MarginRightInCm"": 2.5,
+                    ""MarginBottomInCm"": 2.5,
+                    ""DocumentElements"": [
+                        {
+                            ""HasHeaderRow"": true,
+                            ""TableType"": ""Table"",
+                            ""StyleSettings"": {
+                                ""FontFamily"": ""Times New Roman"",
+                                ""FontSizeInPt"": 10,
+                                ""FontStyle"": ""Regular"",
+                                ""LineSpacingInPt"": 14,
+                                ""Alignment"": ""Left"",
+                                ""SpacingBeforeInPt"": 8,
+                                ""SpacingAfterInPt"": 0,
+                                ""BorderWidthInPt"": 0.5,
+                                ""BorderStyle"": ""All""
+                            },
+                            ""Columns"": [
+                                {
+                                    ""Name"": ""Pöytäkirjatyyppi"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                },
+                                {
+                                    ""Name"": ""Jakokaappi"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                }
+                            ],
+                            ""RowData"": []
+                        },
+                        {
+                            ""HasHeaderRow"": true,
+                            ""TableType"": ""Table"",
+                            ""StyleSettings"": {
+                                ""FontFamily"": ""Times New Roman"",
+                                ""FontSizeInPt"": 10,
+                                ""FontStyle"": ""Regular"",
+                                ""LineSpacingInPt"": 14,
+                                ""Alignment"": ""Left"",
+                                ""SpacingBeforeInPt"": 8,
+                                ""SpacingAfterInPt"": 0,
+                                ""BorderWidthInPt"": 0.5,
+                                ""BorderStyle"": ""All""
+                            },
+                            ""Columns"": [
+                                {
+                                    ""Name"": ""Projekti"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                },
+                                {
+                                    ""Name"": ""I1111515"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                }
+                            ],
+                            ""RowData"": []
+                        },
+                        {
+                            ""Text"": ""\nURAKOITSIJATIEDOT\n"",
+                            ""StyleSettings"": {
+                                ""FontFamily"": ""Arial"",
+                                ""FontSizeInPt"": 12,
+                                ""FontStyle"": ""Bold"",
+                                ""LineSpacingInPt"": 14,
+                                ""Alignment"": ""Left"",
+                                ""SpacingBeforeInPt"": 8,
+                                ""SpacingAfterInPt"": 0,
+                                ""BorderWidthInPt"": 0.5,
+                                ""BorderStyle"": ""All""
+                            }
+                        },
+                        {
+                            ""HasHeaderRow"": true,
+                            ""TableType"": ""Table"",
+                            ""StyleSettings"": {
+                                ""FontFamily"": ""Times New Roman"",
+                                ""FontSizeInPt"": 10,
+                                ""FontStyle"": ""Regular"",
+                                ""LineSpacingInPt"": 14,
+                                ""Alignment"": ""Left"",
+                                ""SpacingBeforeInPt"": 8,
+                                ""SpacingAfterInPt"": 0,
+                                ""BorderWidthInPt"": 0.5,
+                                ""BorderStyle"": ""All""
+                            },
+                            ""Columns"": [
+                                {
+                                    ""Name"": ""Urakoitsija"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                },
+                                {
+                                    ""Name"": ""eBus"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                }
+                            ],
+                            ""RowData"": []
+                        },
+                        {
+                            ""HasHeaderRow"": true,
+                            ""TableType"": ""Table"",
+                            ""StyleSettings"": {
+                                ""FontFamily"": ""Times New Roman"",
+                                ""FontSizeInPt"": 10,
+                                ""FontStyle"": ""Regular"",
+                                ""LineSpacingInPt"": 14,
+                                ""Alignment"": ""Left"",
+                                ""SpacingBeforeInPt"": 8,
+                                ""SpacingAfterInPt"": 0,
+                                ""BorderWidthInPt"": 0.5,
+                                ""BorderStyle"": ""All""
+                            },
+                            ""Columns"": [
+                                {
+                                    ""Name"": ""Tarkastuksen suorittaja"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                },
+                                {
+                                    ""Name"": ""Jesse Ryhänen"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                }
+                            ],
+                            ""RowData"": []
+                        },
+                        {
+                            ""HasHeaderRow"": true,
+                            ""TableType"": ""Table"",
+                            ""StyleSettings"": {
+                                ""FontFamily"": ""Times New Roman"",
+                                ""FontSizeInPt"": 10,
+                                ""FontStyle"": ""Regular"",
+                                ""LineSpacingInPt"": 14,
+                                ""Alignment"": ""Left"",
+                                ""SpacingBeforeInPt"": 8,
+                                ""SpacingAfterInPt"": 0,
+                                ""BorderWidthInPt"": 0.5,
+                                ""BorderStyle"": ""All""
+                            },
+                            ""Columns"": [
+                                {
+                                    ""Name"": ""Päivämäärä"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                },
+                                {
+                                    ""Name"": ""2024-10-29"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                }
+                            ],
+                            ""RowData"": []
+                        },
+                        {
+                            ""Text"": ""\nTARKASTUSKOHDE\n"",
+                            ""StyleSettings"": {
+                                ""FontFamily"": ""Arial"",
+                                ""FontSizeInPt"": 12,
+                                ""FontStyle"": ""Bold"",
+                                ""LineSpacingInPt"": 14,
+                                ""Alignment"": ""Left"",
+                                ""SpacingBeforeInPt"": 8,
+                                ""SpacingAfterInPt"": 0,
+                                ""BorderWidthInPt"": 0.5,
+                                ""BorderStyle"": ""All""
+                            }
+                        },
+                        {
+                            ""HasHeaderRow"": true,
+                            ""TableType"": ""Table"",
+                            ""StyleSettings"": {
+                                ""FontFamily"": ""Times New Roman"",
+                                ""FontSizeInPt"": 10,
+                                ""FontStyle"": ""Regular"",
+                                ""LineSpacingInPt"": 14,
+                                ""Alignment"": ""Left"",
+                                ""SpacingBeforeInPt"": 8,
+                                ""SpacingAfterInPt"": 0,
+                                ""BorderWidthInPt"": 0.5,
+                                ""BorderStyle"": ""All""
+                            },
+                            ""Columns"": [
+                                {
+                                    ""Name"": ""Projekti"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                },
+                                {
+                                    ""Name"": ""I1111515"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                }
+                            ],
+                            ""RowData"": []
+                        },
+                        {
+                            ""HasHeaderRow"": true,
+                            ""TableType"": ""Table"",
+                            ""StyleSettings"": {
+                                ""FontFamily"": ""Times New Roman"",
+                                ""FontSizeInPt"": 10,
+                                ""FontStyle"": ""Regular"",
+                                ""LineSpacingInPt"": 14,
+                                ""Alignment"": ""Left"",
+                                ""SpacingBeforeInPt"": 8,
+                                ""SpacingAfterInPt"": 0,
+                                ""BorderWidthInPt"": 0.5,
+                                ""BorderStyle"": ""All""
+                            },
+                            ""Columns"": [
+                                {
+                                    ""Name"": ""Työtilaus"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                },
+                                {
+                                    ""Name"": ""Virhestesti 1"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                }
+                            ],
+                            ""RowData"": []
+                        },
+                        {
+                            ""HasHeaderRow"": true,
+                            ""TableType"": ""Table"",
+                            ""StyleSettings"": {
+                                ""FontFamily"": ""Times New Roman"",
+                                ""FontSizeInPt"": 10,
+                                ""FontStyle"": ""Regular"",
+                                ""LineSpacingInPt"": 14,
+                                ""Alignment"": ""Left"",
+                                ""SpacingBeforeInPt"": 8,
+                                ""SpacingAfterInPt"": 0,
+                                ""BorderWidthInPt"": 0.5,
+                                ""BorderStyle"": ""All""
+                            },
+                            ""Columns"": [
+                                {
+                                    ""Name"": ""Jakokaapin tunnus"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                },
+                                {
+                                    ""Name"": ""J222463"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                }
+                            ],
+                            ""RowData"": []
+                        },
+                        {
+                            ""HasHeaderRow"": true,
+                            ""TableType"": ""Table"",
+                            ""StyleSettings"": {
+                                ""FontFamily"": ""Times New Roman"",
+                                ""FontSizeInPt"": 10,
+                                ""FontStyle"": ""Regular"",
+                                ""LineSpacingInPt"": 14,
+                                ""Alignment"": ""Left"",
+                                ""SpacingBeforeInPt"": 8,
+                                ""SpacingAfterInPt"": 0,
+                                ""BorderWidthInPt"": 0.5,
+                                ""BorderStyle"": ""All""
+                            },
+                            ""Columns"": [
+                                {
+                                    ""Name"": ""Jakokaapin nimi/osoite"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                },
+                                {
+                                    ""Name"": ""Poikkipuoliaisentie 110"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                }
+                            ],
+                            ""RowData"": []
+                        },
+                        {
+                            ""HasHeaderRow"": true,
+                            ""TableType"": ""Table"",
+                            ""StyleSettings"": {
+                                ""FontFamily"": ""Times New Roman"",
+                                ""FontSizeInPt"": 10,
+                                ""FontStyle"": ""Regular"",
+                                ""LineSpacingInPt"": 14,
+                                ""Alignment"": ""Left"",
+                                ""SpacingBeforeInPt"": 8,
+                                ""SpacingAfterInPt"": 0,
+                                ""BorderWidthInPt"": 0.5,
+                                ""BorderStyle"": ""All""
+                            },
+                            ""Columns"": [
+                                {
+                                    ""Name"": ""Kohteen koordinaatit"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                },
+                                {
+                                    ""Name"": ""lat: 60,643483490172734 lng:23,75935982912779"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                }
+                            ],
+                            ""RowData"": []
+                        },
+                        {
+                            ""HasHeaderRow"": true,
+                            ""TableType"": ""Table"",
+                            ""StyleSettings"": {
+                                ""FontFamily"": ""Times New Roman"",
+                                ""FontSizeInPt"": 10,
+                                ""FontStyle"": ""Regular"",
+                                ""LineSpacingInPt"": 14,
+                                ""Alignment"": ""Left"",
+                                ""SpacingBeforeInPt"": 8,
+                                ""SpacingAfterInPt"": 0,
+                                ""BorderWidthInPt"": 0.5,
+                                ""BorderStyle"": ""All""
+                            },
+                            ""Columns"": [
+                                {
+                                    ""Name"": ""Kohteen työlaji"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                },
+                                {
+                                    ""Name"": ""Jakokaappi OTT"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                }
+                            ],
+                            ""RowData"": []
+                        },
+                        {
+                            ""HasHeaderRow"": true,
+                            ""TableType"": ""Table"",
+                            ""StyleSettings"": {
+                                ""FontFamily"": ""Times New Roman"",
+                                ""FontSizeInPt"": 10,
+                                ""FontStyle"": ""Regular"",
+                                ""LineSpacingInPt"": 14,
+                                ""Alignment"": ""Left"",
+                                ""SpacingBeforeInPt"": 8,
+                                ""SpacingAfterInPt"": 0,
+                                ""BorderWidthInPt"": 0.5,
+                                ""BorderStyle"": ""All""
+                            },
+                            ""Columns"": [
+                                {
+                                    ""Name"": ""Rakennetun verkon lupien, sopimusten ja suunnitelman mukaisuus"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                },
+                                {
+                                    ""Name"": ""On tehty hyväksytyn suunnitelman mukaan\n"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                }
+                            ],
+                            ""RowData"": []
+                        },
+                        {
+                            ""HasHeaderRow"": true,
+                            ""TableType"": ""Table"",
+                            ""StyleSettings"": {
+                                ""FontFamily"": ""Times New Roman"",
+                                ""FontSizeInPt"": 10,
+                                ""FontStyle"": ""Regular"",
+                                ""LineSpacingInPt"": 14,
+                                ""Alignment"": ""Left"",
+                                ""SpacingBeforeInPt"": 8,
+                                ""SpacingAfterInPt"": 0,
+                                ""BorderWidthInPt"": 0.5,
+                                ""BorderStyle"": ""All""
+                            },
+                            ""Columns"": [
+                                {
+                                    ""Name"": ""Rakennettu niin ettei ole tulva-alueella"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                },
+                                {
+                                    ""Name"": ""OK\n"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                }
+                            ],
+                            ""RowData"": []
+                        },
+                        {
+                            ""HasHeaderRow"": true,
+                            ""TableType"": ""Table"",
+                            ""StyleSettings"": {
+                                ""FontFamily"": ""Times New Roman"",
+                                ""FontSizeInPt"": 10,
+                                ""FontStyle"": ""Regular"",
+                                ""LineSpacingInPt"": 14,
+                                ""Alignment"": ""Left"",
+                                ""SpacingBeforeInPt"": 8,
+                                ""SpacingAfterInPt"": 0,
+                                ""BorderWidthInPt"": 0.5,
+                                ""BorderStyle"": ""All""
+                            },
+                            ""Columns"": [
+                                {
+                                    ""Name"": ""Liittyminen vanhaan verkkoon"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                },
+                                {
+                                    ""Name"": ""Ei"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                }
+                            ],
+                            ""RowData"": []
+                        },
+                        {
+                            ""Text"": ""\nOMAN TYÖN TARKASTUS\n"",
+                            ""StyleSettings"": {
+                                ""FontFamily"": ""Arial"",
+                                ""FontSizeInPt"": 12,
+                                ""FontStyle"": ""Bold"",
+                                ""LineSpacingInPt"": 14,
+                                ""Alignment"": ""Left"",
+                                ""SpacingBeforeInPt"": 8,
+                                ""SpacingAfterInPt"": 0,
+                                ""BorderWidthInPt"": 0.5,
+                                ""BorderStyle"": ""All""
+                            }
+                        },
+                        {
+                            ""HasHeaderRow"": true,
+                            ""TableType"": ""Table"",
+                            ""StyleSettings"": {
+                                ""FontFamily"": ""Times New Roman"",
+                                ""FontSizeInPt"": 10,
+                                ""FontStyle"": ""Regular"",
+                                ""LineSpacingInPt"": 14,
+                                ""Alignment"": ""Left"",
+                                ""SpacingBeforeInPt"": 8,
+                                ""SpacingAfterInPt"": 0,
+                                ""BorderWidthInPt"": 0.5,
+                                ""BorderStyle"": ""All""
+                            },
+                            ""Columns"": [
+                                {
+                                    ""Name"": ""Ulkopuolinen rakenne ja merkinnät"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                },
+                                {
+                                    ""Name"": ""OK\nJesse testaa\nKuuluu asennukseen"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                }
+                            ],
+                            ""RowData"": []
+                        },
+                        {
+                            ""HasHeaderRow"": true,
+                            ""TableType"": ""Table"",
+                            ""StyleSettings"": {
+                                ""FontFamily"": ""Times New Roman"",
+                                ""FontSizeInPt"": 10,
+                                ""FontStyle"": ""Regular"",
+                                ""LineSpacingInPt"": 14,
+                                ""Alignment"": ""Left"",
+                                ""SpacingBeforeInPt"": 8,
+                                ""SpacingAfterInPt"": 0,
+                                ""BorderWidthInPt"": 0.5,
+                                ""BorderStyle"": ""All""
+                            },
+                            ""Columns"": [
+                                {
+                                    ""Name"": ""Jakokaapin maanrakennustyöt"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                },
+                                {
+                                    ""Name"": ""OK\n\nKuuluu asennukseen"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                }
+                            ],
+                            ""RowData"": []
+                        },
+                        {
+                            ""HasHeaderRow"": true,
+                            ""TableType"": ""Table"",
+                            ""StyleSettings"": {
+                                ""FontFamily"": ""Times New Roman"",
+                                ""FontSizeInPt"": 10,
+                                ""FontStyle"": ""Regular"",
+                                ""LineSpacingInPt"": 14,
+                                ""Alignment"": ""Left"",
+                                ""SpacingBeforeInPt"": 8,
+                                ""SpacingAfterInPt"": 0,
+                                ""BorderWidthInPt"": 0.5,
+                                ""BorderStyle"": ""All""
+                            },
+                            ""Columns"": [
+                                {
+                                    ""Name"": ""Perustus, sen alue ja syvyys jakokaapin Carunan perustusohjeen mukainen"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                },
+                                {
+                                    ""Name"": ""OK\n\nKuuluu asennukseen"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                }
+                            ],
+                            ""RowData"": []
+                        },
+                        {
+                            ""HasHeaderRow"": true,
+                            ""TableType"": ""Table"",
+                            ""StyleSettings"": {
+                                ""FontFamily"": ""Times New Roman"",
+                                ""FontSizeInPt"": 10,
+                                ""FontStyle"": ""Regular"",
+                                ""LineSpacingInPt"": 14,
+                                ""Alignment"": ""Left"",
+                                ""SpacingBeforeInPt"": 8,
+                                ""SpacingAfterInPt"": 0,
+                                ""BorderWidthInPt"": 0.5,
+                                ""BorderStyle"": ""All""
+                            },
+                            ""Columns"": [
+                                {
+                                    ""Name"": ""Maadoitukset tehty suunnitelman mukaan"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                },
+                                {
+                                    ""Name"": ""OK\n\nKuuluu asennukseen"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                }
+                            ],
+                            ""RowData"": []
+                        },
+                        {
+                            ""HasHeaderRow"": true,
+                            ""TableType"": ""Table"",
+                            ""StyleSettings"": {
+                                ""FontFamily"": ""Times New Roman"",
+                                ""FontSizeInPt"": 10,
+                                ""FontStyle"": ""Regular"",
+                                ""LineSpacingInPt"": 14,
+                                ""Alignment"": ""Left"",
+                                ""SpacingBeforeInPt"": 8,
+                                ""SpacingAfterInPt"": 0,
+                                ""BorderWidthInPt"": 0.5,
+                                ""BorderStyle"": ""All""
+                            },
+                            ""Columns"": [
+                                {
+                                    ""Name"": ""Kytkimet"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                },
+                                {
+                                    ""Name"": ""OK\n\nKuuluu asennukseen"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                }
+                            ],
+                            ""RowData"": []
+                        },
+                        {
+                            ""HasHeaderRow"": true,
+                            ""TableType"": ""Table"",
+                            ""StyleSettings"": {
+                                ""FontFamily"": ""Times New Roman"",
+                                ""FontSizeInPt"": 10,
+                                ""FontStyle"": ""Regular"",
+                                ""LineSpacingInPt"": 14,
+                                ""Alignment"": ""Left"",
+                                ""SpacingBeforeInPt"": 8,
+                                ""SpacingAfterInPt"": 0,
+                                ""BorderWidthInPt"": 0.5,
+                                ""BorderStyle"": ""All""
+                            },
+                            ""Columns"": [
+                                {
+                                    ""Name"": ""PJ-kaapelit ja sulakkeet"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                },
+                                {
+                                    ""Name"": ""OK\n\nKuuluu asennukseen"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                }
+                            ],
+                            ""RowData"": []
+                        },
+                        {
+                            ""HasHeaderRow"": true,
+                            ""TableType"": ""Table"",
+                            ""StyleSettings"": {
+                                ""FontFamily"": ""Times New Roman"",
+                                ""FontSizeInPt"": 10,
+                                ""FontStyle"": ""Regular"",
+                                ""LineSpacingInPt"": 14,
+                                ""Alignment"": ""Left"",
+                                ""SpacingBeforeInPt"": 8,
+                                ""SpacingAfterInPt"": 0,
+                                ""BorderWidthInPt"": 0.5,
+                                ""BorderStyle"": ""All""
+                            },
+                            ""Columns"": [
+                                {
+                                    ""Name"": ""Kaapeleiden merkinnät ja verkkotietojärjestelmä"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                },
+                                {
+                                    ""Name"": ""OK\n\nKuuluu asennukseen"",
+                                    ""WidthInCm"": 8,
+                                    ""Type"": ""Text""
+                                }
+                            ],
+                            ""RowData"": []
                         }
                     ]
                 }";
