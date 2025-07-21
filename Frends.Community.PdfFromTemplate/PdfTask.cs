@@ -289,7 +289,7 @@ namespace Frends.Community.PdfFromTemplate
         /// <param name="imageDef">The image definition</param>
         private static void AddImage(Document document, ImageDefinition imageDef)
         {
-            var imagePath = imageDef.ImagePath.Replace("\\\\", "\\");
+            var imagePath = imageDef.ImagePath;
             if (!File.Exists(imagePath))
             {
                 throw new FileNotFoundException($"Image file not found: {imagePath}", imagePath);
@@ -540,7 +540,7 @@ namespace Frends.Community.PdfFromTemplate
             }
 
             var cell = new Cell();
-            imagePath = imagePath.Replace("\\\\", "\\");
+            // Keep UNC paths intact for network shares
             if (!File.Exists(imagePath))
             {
                 throw new FileNotFoundException($"Image file not found: {imagePath}", imagePath);
