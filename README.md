@@ -322,3 +322,4 @@ NOTE: Be sure to merge the latest from "upstream" before making a pull request!
 | Version             | Changes                 |
 | ---------------------| ---------------------|
 | 1.0.0 | Initial version of PdfFromTemplate |
+| 1.1.0 | Added support for .NET 6.0 and .NET 8.0 |

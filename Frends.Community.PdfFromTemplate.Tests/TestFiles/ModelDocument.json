@@ -94,6 +94,46 @@
       ]
     },
     {
+      "HasHeaderRow": false,
+      "TableType": "Footer",
+      "StyleSettings": {
+        "FontFamily": "Times New Roman",
+        "FontSizeInPt": 10,
+        "FontStyle": "Regular",
+        "LineSpacingInPt": 0,
+        "HorizontalAlignment": "Left",
+        "VerticalAlignment": "Bottom",
+        "SpacingBeforeInPt": 0,
+        "SpacingAfterInPt": 0,
+        "BorderWidthInPt": 0.5,
+        "BorderStyle": "Top"
+      },
+      "Columns": [
+        {
+          "Name": "Footer 1",
+          "WidthInCm": 4,
+          "Type": "Text"
+        },
+        {
+          "Name": "Footer 2",
+          "WidthInCm": 5,
+          "Type": "Text"
+        },
+        {
+          "Name": "PageNum",
+          "WidthInCm": 6,
+          "Type": "PageNum"
+        }
+      ],
+      "RowData": [
+        {
+          "Footer 1": "Footer Text 1",
+          "Footer 2": "Footer Text 2",
+          "PageNum": ""
+        }
+      ]
+    },
+    {
       "InsertPageBreak": true
     },
     {

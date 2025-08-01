@@ -1,8 +1,12 @@
-﻿using Newtonsoft.Json;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using Newtonsoft.Json;
 using JsonSubTypes;
+using iText.Kernel.Geom;
+using iText.Layout;
+using iText.Layout.Properties;
 #pragma warning disable 1591
 
 namespace Frends.Community.PdfFromTemplate
@@ -108,7 +112,7 @@ namespace Frends.Community.PdfFromTemplate
     public enum TableTypeEnum { Table, Header, Footer };
     public enum ColumnTypeEnum { Text, Image, PageNum };
     public enum BorderStyleEnum { None, Top, Bottom, All };
-    public enum PageSizeEnum { A0, A1, A2, A3, A4, A5, A6, B5, Ledger, Legal, Letter };
+    public enum PageSizeEnum { A0, A1, A2, A3, A4, A5, A6, B5, Letter, Legal, Ledger };
     public enum PageOrientationEnum { Portrait, Landscape };
     public enum ElementTypeEnum { Paragraph, Image, Table, PageBreak };
 
@@ -159,6 +163,7 @@ namespace Frends.Community.PdfFromTemplate
         public StyleSettingsDefinition StyleSettings { get; set; }
         public List<ColumnDefinition> Columns { get; set; }
         public List<Dictionary<string, string>> RowData { get; set; }
+        public List<Dictionary<string, string>> HeaderData { get; set; }
     }
     public class ParagraphDefinition : DocumentElement
     {
