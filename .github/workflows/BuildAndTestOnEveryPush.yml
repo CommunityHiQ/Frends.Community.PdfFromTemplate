@@ -24,7 +24,16 @@ jobs:
     - name: Pack release version of task
       run: dotnet pack --configuration Release --include-source
       
-    - name: Push NuGet package to the testfeed
-      run: dotnet nuget push Frends.Community.PdfFromTemplate\bin\Release\Frends.Community.PdfFromTemplate.*.nupkg  --api-key ${{ secrets.CommunityFeedApiKey }} --source https://www.myget.org/F/frends-community-test/api/v2/package
-
-
+    - name: Get package name
+      id: package_name
+      run: |
+        $pkg = Get-ChildItem -Path . -Filter *.nupkg -Exclude *.symbols.nupkg -Recurse | Select-Object -First 1
+        echo "full_name=$($pkg.FullName)" >> $env:GITHUB_OUTPUT
+      
+    - name: Push to Frends Community Test Feed
+      shell: bash
+      run: |       
+        curl -X POST "https://frends-fsp-cloudprod-agent.frendsapp.com/api/community-tasks/v1/push?feed_type=test" \
+          -H "x-api-key: ${{ secrets.FRENDS_COMMUNITY_TASKS_API_KEY }}" \
+          -H "Content-Type: application/octet-stream" \
+          --data-binary @"${{ steps.package_name.outputs.full_name }}"
