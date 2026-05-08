@@ -33,7 +33,7 @@ jobs:
     - name: Push to Frends Community Test Feed
       shell: bash
       run: |       
-        curl -X POST "https://frends-fsp-cloudprod-agent.frendsapp.com/api/community-tasks/v1/push?feed_type=test" \
+        curl -X POST "${{ secrets.COMMUNITY_TASKS_API }}?feed_type=test" \
           -H "x-api-key: ${{ secrets.FRENDS_COMMUNITY_TASKS_API_KEY }}" \
           -H "Content-Type: application/octet-stream" \
           --data-binary @"${{ steps.package_name.outputs.full_name }}"
